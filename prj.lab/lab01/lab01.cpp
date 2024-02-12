@@ -3,7 +3,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 
-void generateGammaCorrectedGradient(cv::Mat& grad, double gamma) {
+void generateGammaCorrectedGradient(cv::Mat& grad, double& gamma) {
   for (auto col = 0.0; col < grad.cols; ++col) {
     auto intensity = pow(col / grad.cols, 1.0 / gamma);
     grad.col(col).setTo(cv::Scalar(255 * intensity, 255 * intensity, 255 * intensity));
