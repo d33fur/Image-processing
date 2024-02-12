@@ -31,4 +31,6 @@
 *.out
 *.app
 
-prj.lab/lab01/build
+build
+bin
+.vscode
