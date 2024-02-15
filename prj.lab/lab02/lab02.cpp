@@ -7,27 +7,10 @@
 using namespace cv;
 using namespace std;
 
-void getVectorFromString(string& str, vector<int>& vec) {
-  try {
-    size_t last = 0, next = 0, i = 0;
-    string delimiter = ",";
-
-    while ((next = str.find(delimiter, last)) != string::npos && i < 2) {
-      vec[i] = stoi(str.substr(last, next - last));
-      last = next + 1;
-      i++;
-    }
-
-    vec[i] = stoi(str.substr(last));
-  } catch (const exception& e) {
-    cout << "Invalid input: " << str << endl;
-  }
-}
-
 void makeHistogram(const Mat& image, Mat& histImage) {
   vector<Mat> bgr_planes;
   split(image, bgr_planes);
-  int histSize = 256;
+  int histSize = 16;
   float range[] = {0, 256};
   const float *histRange[] = {range};
   bool uniform = true, accumulate = false;
@@ -47,59 +30,60 @@ void makeHistogram(const Mat& image, Mat& histImage) {
     rectangle(histImage,
       Point(bin_w * (i - 1), hist_h),
       Point(bin_w * i, hist_h - cvRound(b_hist.at<float>(i - 1))),
-      Scalar(255, 0, 0),
-      FILLED);
+      Scalar(255, 255, 255)
+      // ,
+      // FILLED
+      );
     rectangle(histImage,
       Point(bin_w * (i - 1), hist_h),
       Point(bin_w * i, hist_h - cvRound(g_hist.at<float>(i - 1))),
-      Scalar(255, 0, 0),
-      FILLED);
+      Scalar(255, 255, 255)      
+      // ,
+      // FILLED
+      );
     rectangle(histImage,
       Point(bin_w * (i - 1), hist_h),
       Point(bin_w * i, hist_h - cvRound(r_hist.at<float>(i - 1))),
-      Scalar(255, 0, 0),
-      FILLED);
+      Scalar(255, 255, 255)
+      // ,
+      // FILLED
+      );
   }
 }
 
 int main(int argc, char* argv[]) {
   cv::CommandLineParser parser(argc, argv,
     "{ w | 800 | side of a square }"
-    "{ c1 | 40,40,40 | color of big square }"
-    "{ c2 | 127,127,127 | color small square }"
-    "{ c3 | 220,220,220 | color of circle }");
+    "{ c1 | 40 | color of big square }"
+    "{ c2 | 127 | color small square }"
+    "{ c3 | 220 | color of circle }");
 
   auto w = parser.get<int>("w");
   auto w1 = (w - sqrt(w * w * 2 / 3)) / 2;
   auto w3 = sqrt(w * w / (3 * 3.14));
-  auto c1 = parser.get<string>("c1");
-  auto c2 = parser.get<string>("c2");
-  auto c3 = parser.get<string>("c3");
+  auto c1 = parser.get<int>("c1");
+  auto c2 = parser.get<int>("c2");
+  auto c3 = parser.get<int>("c3");
 
-  vector<vector<int>> vec(3, vector<int>(3));
-  getVectorFromString(c1, vec[0]);
-  getVectorFromString(c2, vec[1]);
-  getVectorFromString(c3, vec[2]);
-
-  Mat originalImage(w, w, CV_8UC3, Scalar(vec[0][0], vec[0][1], vec[0][2]));
+  Mat originalImage(w, w, CV_8UC3, Scalar(c1, c1, c1));
 
   rectangle(originalImage,
     Point(w1, w1),
     Point(w - w1, w - w1),
-    Scalar(vec[1][0], vec[1][1], vec[1][2]),
+    Scalar(c2, c2, c2),
     FILLED,
     LINE_8);
 
   circle(originalImage,
     Point(w / 2, w / 2),
     w3,
-    Scalar(vec[2][0], vec[2][1], vec[2][2]),
+    Scalar(c3, c3, c3),
     FILLED,
     LINE_8);
 
   Mat noise(originalImage.size(), CV_8UC3);
-  randn(noise, Scalar::all(0), Scalar::all(10));
-
+  randn(noise, Scalar::all(0), Scalar::all(25));
+  
   Mat noisyImage;
   add(originalImage, noise, noisyImage);
 
