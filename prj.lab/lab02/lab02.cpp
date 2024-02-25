@@ -10,16 +10,12 @@ using namespace std;
 
 Mat drawHistogram(const Mat& noisyImage) {
   Mat histImage;
-  vector<Mat> bgr_planes;
-  split(noisyImage, bgr_planes);
-
   int histSize = 256;
   float range[] = {0, 256};
   const float *histRange[] = {range};
-  bool uniform = true, accumulate = false;
 
   Mat hist;
-  calcHist(&noisyImage, 1, 0, Mat(), hist, 1, &histSize, histRange, uniform, accumulate);
+  calcHist(&noisyImage, 1, 0, Mat(), hist, 1, &histSize, histRange, 1, 0);
 
   int w = 256;
   int bin_w = cvRound((double) w / histSize);
@@ -41,19 +37,16 @@ Mat generateNoiseImage(const Mat& image, const double& c) {
   random_device rd{};
   mt19937 gen{rd()};
   normal_distribution<> distribution{1., c};
-
   Mat noisyImage = image.clone();
 
   for (int i = 0; i < noisyImage.rows; i++) {
     for (int j = 0; j < noisyImage.cols; j++) {
       auto noise = round(distribution(gen));
+      auto diff = static_cast<int>(noisyImage.at<uchar>(i, j)) + noise;
       
-      if(static_cast<int>(noisyImage.at<uchar>(i, j)) + noise < 0 || static_cast<int>(noisyImage.at<uchar>(i, j)) + noise > 255) {
-        noisyImage.at<uchar>(i, j) -= static_cast<uchar>(noise);
-      }
-      else {
+      diff < 0 || diff > 255 ? 
+        noisyImage.at<uchar>(i, j) -= static_cast<uchar>(noise) : 
         noisyImage.at<uchar>(i, j) += static_cast<uchar>(noise);
-      }
     }
   }
 
@@ -75,21 +68,21 @@ Mat generateHistograms(const Mat& image) {
 }
 
 Mat generateImage(const vector<int>& c) {
-  Mat image(256, 256, CV_8UC1, Scalar(c[0], c[0], c[0]));
+  Mat image(256, 256, CV_8UC1, Scalar(c[0]));
   auto p1 = (256-209) / 2;
   auto p2 = 256 - p1;
 
   rectangle(image,
     Point(p1, p1),
     Point(p2, p2),
-    Scalar(c[1], c[1], c[1]),
+    Scalar(c[1]),
     FILLED,
     LINE_8);
 
   circle(image,
     Point(128, 128),
     83,
-    Scalar(c[2], c[2], c[2]),
+    Scalar(c[2]),
     FILLED,
     LINE_8);
     
