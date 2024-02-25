@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <random>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
@@ -17,55 +18,54 @@ Mat drawHistogram(const Mat& noisyImage) {
   const float *histRange[] = {range};
   bool uniform = true, accumulate = false;
 
-  Mat b_hist, g_hist, r_hist;
-  calcHist(&bgr_planes[0], 1, 0, Mat(), b_hist, 1, &histSize, histRange, uniform, accumulate);
-  calcHist(&bgr_planes[1], 1, 0, Mat(), g_hist, 1, &histSize, histRange, uniform, accumulate);
-  calcHist(&bgr_planes[2], 1, 0, Mat(), r_hist, 1, &histSize, histRange, uniform, accumulate);
+  Mat hist;
+  calcHist(&noisyImage, 1, 0, Mat(), hist, 1, &histSize, histRange, uniform, accumulate);
 
   int w = 256;
   int bin_w = cvRound((double) w / histSize);
-  histImage = Mat(w, w, CV_8UC3, Scalar(230, 230, 230));
-  normalize(b_hist, b_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
-  normalize(g_hist, g_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
-  normalize(r_hist, r_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
+  histImage = Mat(w, w, CV_8UC1, Scalar(255));
+  normalize(hist, hist, 0, 230, NORM_MINMAX, -1, Mat());
 
   for (int i = 1; i < histSize; i++) {
     rectangle(histImage,
       Point(bin_w * (i - 1), w),
-      Point(bin_w * i, w - cvRound(b_hist.at<float>(i - 1))),
-      Scalar(0, 0, 0),
-      FILLED);
-    rectangle(histImage,
-      Point(bin_w * (i - 1), w),
-      Point(bin_w * i, w - cvRound(g_hist.at<float>(i - 1))),
-      Scalar(0, 0, 0),
-      FILLED);
-    rectangle(histImage,
-      Point(bin_w * (i - 1), w),
-      Point(bin_w * i, w - cvRound(r_hist.at<float>(i - 1))),
-      Scalar(0, 0, 0),
+      Point(bin_w * i, w - cvRound(hist.at<float>(i - 1))),
+      Scalar(0),
       FILLED);
   }
 
   return histImage;
 }
 
-Mat generateNoiseImage(const Mat& image, const int& c) {
-  Mat noise(256, 256, CV_8UC3);
-  randn(noise, Scalar::all(0), Scalar::all(c));
-  
-  Mat noisyImage;
-  add(image, noise, noisyImage);
+Mat generateNoiseImage(const Mat& image, const double& c) {
+  random_device rd{};
+  mt19937 gen{rd()};
+  normal_distribution<> distribution{1., c};
+
+  Mat noisyImage = image.clone();
+
+  for (int i = 0; i < noisyImage.rows; i++) {
+    for (int j = 0; j < noisyImage.cols; j++) {
+      auto noise = round(distribution(gen));
+      
+      if(static_cast<int>(noisyImage.at<uchar>(i, j)) + noise < 0 || static_cast<int>(noisyImage.at<uchar>(i, j)) + noise > 255) {
+        noisyImage.at<uchar>(i, j) -= static_cast<uchar>(noise);
+      }
+      else {
+        noisyImage.at<uchar>(i, j) += static_cast<uchar>(noise);
+      }
+    }
+  }
 
   return noisyImage;
 }
 
 Mat generateHistograms(const Mat& image) {
-  Mat canvas = Mat::zeros(256 * 7, 256, CV_8UC3);
+  Mat canvas = Mat::zeros(256 * 7, 256, CV_8UC1);
   image.copyTo(canvas(Rect(0, 0, 256, 256)));
 
   int i = 1;
-  for(const auto& c : {3, 7, 15}) {
+  for(const auto& c : {3., 7., 15.}) {
     Mat noisyImage = generateNoiseImage(image, c);
     noisyImage.copyTo(canvas(Rect(0, 256 * i++, 256, 256)));
     drawHistogram(noisyImage).copyTo(canvas(Rect(0, 256 * i++, 256, 256)));
@@ -75,7 +75,7 @@ Mat generateHistograms(const Mat& image) {
 }
 
 Mat generateImage(const vector<int>& c) {
-  Mat image(256, 256, CV_8UC3, Scalar(c[0], c[0], c[0]));
+  Mat image(256, 256, CV_8UC1, Scalar(c[0], c[0], c[0]));
   auto p1 = (256-209) / 2;
   auto p2 = 256 - p1;
 
@@ -97,7 +97,7 @@ Mat generateImage(const vector<int>& c) {
 }
 
 int main() {
-  Mat canvas = Mat::zeros(256 * 7, 256 * 4, CV_8UC3);
+  Mat canvas = Mat::zeros(256 * 7, 256 * 4, CV_8UC1);
   vector<vector<int>> colors = {
     {0, 127, 255},
     {20, 127, 235},
@@ -110,6 +110,8 @@ int main() {
     generateImage(c).copyTo(canvas(Rect(i++ * 256, 0, 256, 256 * 7)));
   }
 
+  namedWindow("Image", WINDOW_NORMAL);
+  resizeWindow("Image", 256 * 4, 256 * 7);
   imshow("Image", canvas);
   waitKey(0);
 

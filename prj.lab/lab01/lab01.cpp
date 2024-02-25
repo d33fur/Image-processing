@@ -22,13 +22,13 @@ int main(int argc, char* argv[]) {
   auto g = parser.get<double>("gamma");
   auto filename = parser.get<std::string>("output");
 
-  cv::Mat grad(h, s * 256, CV_8UC3);
+  cv::Mat grad(h, s * 256, CV_8UC1);
   for (int col = 0; col < grad.cols; ++col) {
     auto intensity = static_cast<float>(col) / grad.cols;
     grad.col(col).setTo(cv::Scalar(255 * intensity, 255 * intensity, 255 * intensity));
   }
 
-  cv::Mat gradGammaCorrected(h, s * 256, CV_8UC3);
+  cv::Mat gradGammaCorrected(h, s * 256, CV_8UC1);
   generateGammaCorrectedGradient(gradGammaCorrected, g);
 
   cv::Mat combined;
