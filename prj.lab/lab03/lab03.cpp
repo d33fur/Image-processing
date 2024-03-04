@@ -39,11 +39,11 @@ void getBorders(cv::Mat& image, const std::pair<double, double>& q,
 // для чб
 void autocontrast1(cv::Mat& image, cv::Mat& canvas, 
   const std::pair<double, double>& q) {
-  cv::Mat grayImage;
-  cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
+  cv::cvtColor(image, canvas, cv::COLOR_BGR2GRAY);
   std::pair<int, int> borders;
-  getBorders(grayImage, q, borders);
-  cv::normalize(grayImage, canvas, borders.first - 127, borders.second - 127, cv::NORM_MINMAX);
+  getBorders(canvas, q, borders);
+  cv::normalize(canvas, canvas, borders.first, borders.second, cv::NORM_MINMAX);
+  cv::cvtColor(canvas, canvas, cv::COLOR_GRAY2BGR);
 }
 
 // для цветного
@@ -56,12 +56,11 @@ void autocontrast3(cv::Mat& image, cv::Mat& canvas,
   std::vector<std::pair<int, int>> borders(3);
   for(int i = 0; i < 3; i++) {
     getBorders(imageVec[i], q, borders[i]);
-    std::cout << borders[i].first << ' ' << borders[i].second << std::endl;
   }
 
   for(int i = 0; i < 3; i++) {
-    cv::normalize(imageVec[i], combined[i], minMax.first - 127, minMax.second - 127, cv::NORM_MINMAX);
-    cv::normalize(imageVec[i], separated[i], borders[i].first - 127, borders[i].second - 127, cv::NORM_MINMAX);
+    cv::normalize(imageVec[i], combined[i], minMax.first, minMax.second, cv::NORM_MINMAX);
+    cv::normalize(imageVec[i], separated[i], borders[i].first, borders[i].second, cv::NORM_MINMAX);
   }
 
   std::vector<cv::Mat> canvases(2);
