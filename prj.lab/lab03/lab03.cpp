@@ -16,7 +16,6 @@ void getBorders(cv::Mat& image, const std::pair<double, double>& q,
 
   float total = cv::sum(hist)[0];
   float sumLeft = 0, sumRight = 0;
-  int left = 0, right = 255;
   borders = {0, 255};
 
   for(int i = 0, j = histSize - 1; i < histSize || j >= 0; i++, j--) {
@@ -33,39 +32,36 @@ void getBorders(cv::Mat& image, const std::pair<double, double>& q,
     }
   }
 
-  minMax = {std::min(left, minMax.first), std::max(right, minMax.second)};
+  minMax = {std::min(borders.first, minMax.first), std::max(borders.second, minMax.second)};
 }
 
 
 // для чб
 void autocontrast1(cv::Mat& image, cv::Mat& canvas, 
   const std::pair<double, double>& q) {
-  std::cout << "autocontrast1" << std::endl;
-
   cv::Mat grayImage;
   cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
   std::pair<int, int> borders;
   getBorders(grayImage, q, borders);
-  std::cout << borders.first << ' ' << borders.second << std::endl;
-  cv::normalize(grayImage, canvas, borders.first, borders.second, cv::NORM_MINMAX);
+  cv::normalize(grayImage, canvas, borders.first - 127, borders.second - 127, cv::NORM_MINMAX);
 }
 
 // для цветного
 void autocontrast3(cv::Mat& image, cv::Mat& canvas, 
   const std::pair<double, double>& q) {
-  std::cout << "autocontrast3" << std::endl;
 
   std::vector<cv::Mat> imageVec, combined(3), separated(3);
   cv::split(image, imageVec);
 
   std::vector<std::pair<int, int>> borders(3);
   for(int i = 0; i < 3; i++) {
-    getBorders(imageVec[i], q, borders[0]);
+    getBorders(imageVec[i], q, borders[i]);
+    std::cout << borders[i].first << ' ' << borders[i].second << std::endl;
   }
 
   for(int i = 0; i < 3; i++) {
-    cv::normalize(imageVec[i], combined[i], minMax.first, minMax.second, cv::NORM_MINMAX);
-    cv::normalize(imageVec[i], separated[i], borders[i].first, borders[i].second, cv::NORM_MINMAX);
+    cv::normalize(imageVec[i], combined[i], minMax.first - 127, minMax.second - 127, cv::NORM_MINMAX);
+    cv::normalize(imageVec[i], separated[i], borders[i].first - 127, borders[i].second - 127, cv::NORM_MINMAX);
   }
 
   std::vector<cv::Mat> canvases(2);
