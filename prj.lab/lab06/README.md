@@ -4,6 +4,6 @@
 
 ![1](Lab04img01.jpeg)
 
-![2](Lab04img01.jpeg)
+![2](Lab04img02.jpeg)
 
-![3](Lab04img01.jpeg)
+![3](Lab04img03.jpeg)
