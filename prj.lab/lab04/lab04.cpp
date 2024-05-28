@@ -8,10 +8,11 @@
 #include <tgmath.h>
 #include <errno.h>
 #include <stdio.h>
+#include "json.hpp"
 
 void addBlur(cv::Mat& image, int x, int y, int radius, int blur, int cols, int intensity) {
   int circleImgWidth = image.cols / cols;
-  cv::Mat circleImage(circleImgWidth, circleImgWidth, CV_8UC1, cv::Scalar(127));
+  cv::Mat circleImage(circleImgWidth, circleImgWidth, CV_8UC1, cv::Scalar(150));
   
   cv::circle(circleImage, cv::Point(circleImgWidth / 2, circleImgWidth / 2), radius, cv::Scalar(intensity), -1);
   int kernelSize = blur * 6 + 1;
@@ -24,7 +25,7 @@ void generate(cv::Mat& canvas, cv::Mat& object, int a, int b, std::pair<double, 
   int rows = std::sqrt(a);
   double sizeStep = (s.second - s.first) / rows;
   double contrastStep = (c.second - c.first) / rows;
-  object = cv::Mat(1024, 1024, CV_8UC1, cv::Scalar(126));
+  object = cv::Mat(1024, 1024, CV_8UC1, cv::Scalar(127));
 
   for(int i = 0; i < rows; i++) {
     double currentSize = s.first + i * sizeStep;
@@ -33,15 +34,14 @@ void generate(cv::Mat& canvas, cv::Mat& object, int a, int b, std::pair<double, 
       int y = (object.cols / rows) * j + object.cols / (2 * rows);
       int x = (object.rows / rows) * i + object.rows / (2 * rows);
       int radius = currentSize * (object.cols / 100) / 2;
-      int intensity = 50 + currentContrast * (255 / 100);
+      int intensity = 154 + currentContrast * (255 / 100);
 
       addBlur(object, x, y, radius, contrastStep, rows, intensity);
       // addBlur(object, x, y, radius, contrastStep, rows, 100);
     }
   }
 
-  cv::Mat noisedImage(object.rows, object.cols, CV_8UC1, 127);
-  noisedImage = object.clone();
+  cv::Mat  noisedImage = object;
   cv::Mat mGaussian_noise = cv::Mat(object.size(),CV_8UC1);
 
   cv::randn(mGaussian_noise, 0, 20);
@@ -63,7 +63,7 @@ void getTreshold(cv::Mat& canvas) {
     7);
 }
 
-void getBlobs (cv::Mat& image) {
+void getBlobs(cv::Mat& image) {
   cv::Laplacian(image, image, CV_8UC1);
   cv::threshold(image, image, 0, 255, cv::THRESH_BINARY);
 }
@@ -77,6 +77,10 @@ std::pair<double, double> getPair(const std::string& str) {
   }
   return {l, r};
 }
+
+// void getBlobsData(cv::Mat& canvas) {
+
+// }
 
 int main(int argc, char* argv[]) {
   cv::CommandLineParser parser(argc, argv,
@@ -106,17 +110,19 @@ int main(int argc, char* argv[]) {
   cv::imshow("Image", canvas);
   cv::imwrite("Lab04img01.jpeg", canvas);
 
-  cv::Mat tresholdCanvas = canvas;
-  getTreshold(tresholdCanvas);
-  cv::namedWindow("Image treshhold", cv::WINDOW_NORMAL);
-  cv::imshow("Image treshhold", tresholdCanvas);
-  cv::imwrite("Lab04img02.jpeg", tresholdCanvas);
+  // cv::Mat tresholdCanvas = canvas;
+  // getTreshold(tresholdCanvas);
+  // cv::namedWindow("Image treshhold", cv::WINDOW_NORMAL);
+  // cv::imshow("Image treshhold", tresholdCanvas);
+  // cv::imwrite("Lab04img02.jpeg", tresholdCanvas);
 
-  cv::Mat blobsCanvas = canvas;
-  getBlobs(blobsCanvas);
-  cv::namedWindow("Image blobs", cv::WINDOW_NORMAL);
-  cv::imshow("Image blobs", blobsCanvas);
-  cv::imwrite("Lab04img03.jpeg", blobsCanvas);
+  // cv::Mat blobsCanvas = canvas;
+  // getBlobs(blobsCanvas);
+  // cv::namedWindow("Image blobs", cv::WINDOW_NORMAL);
+  // cv::imshow("Image blobs", blobsCanvas);
+  // cv::imwrite("Lab04img03.jpeg", blobsCanvas);
+
+  // getBlobsData(blobsCanvas);
 
   cv::waitKey(0);
 

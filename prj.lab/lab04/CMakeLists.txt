@@ -1,4 +1,4 @@
-add_executable(lab04 lab04.cpp)
+add_executable(lab04 lab04.cpp json.hpp)
 target_link_libraries(lab04 PRIVATE 
   opencv_core 
   opencv_imgproc 
