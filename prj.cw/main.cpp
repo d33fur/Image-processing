@@ -25,10 +25,10 @@ void callback(void *bufferData, unsigned int frames) {
   g.useWindowFunc();
 
   //вызвать fft
-  g.fft();
+  // g.fft();
 
   //нормализовать
-  g.normalize();
+  // g.normalize();
 }
 
 

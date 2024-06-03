@@ -54,36 +54,36 @@ void a2i::Spectrogram::useWindowFunc() {
 //     }
 // }
 
-void a2i::Spectrogram::fft() {
-  std::complex<float> inn[frame_size], outt[frame_size];
-  for(size_t i = 0; i < frame_size; i++) {
-    inn[i] = window_out[i];
-  }
-  fft_c(inn, 1, outt, frame_size);
-  for(size_t i = 0; i < frame_size / 2; i++) {
-    ft_out[i] = outt[i];
-  }
-}
+// void a2i::Spectrogram::fft() {
+//   std::complex<float> inn[frame_size], outt[frame_size];
+//   for(size_t i = 0; i < frame_size; i++) {
+//     inn[i] = window_out[i];
+//   }
+//   fft_c(inn, 1, outt, frame_size);
+//   for(size_t i = 0; i < frame_size / 2; i++) {
+//     ft_out[i] = outt[i];
+//   }
+// }
 
-void a2i::Spectrogram::fft_c(std::complex<float> in[], size_t stride, std::complex<float> out[], size_t n) {
-  assert(n > 0);
+// void a2i::Spectrogram::fft_c(std::complex<float> in[], size_t stride, std::complex<float> out[], size_t n) {
+//   assert(n > 0);
 
-  if(n == 1) {
-    out[0] = in[0];
-    return;
-  }
+//   if(n == 1) {
+//     out[0] = in[0];
+//     return;
+//   }
 
-  fft(in, stride * 2, out, n / 2);
-  fft(in + stride, stride* 2, out + n / 2, n / 2);
+//   fft(in, stride * 2, out, n / 2);
+//   fft(in + stride, stride* 2, out + n / 2, n / 2);
 
-  for(size_t i = 0; i < n / 2; i++) {
-    float t = (float)i / n;
-    std::complex<float> v = (std::complex<float>)cexp(-2 * I * M_PI * t) * out[i + n/2];
-    std::complex<float> e = out[i];
-    out[i] = e + v;
-    out[i + n / 2] = e - v;
-  }
-}
+//   for(size_t i = 0; i < n / 2; i++) {
+//     float t = (float)i / n;
+//     std::complex<float> v = (std::complex<float>)cexp(-2 * I * M_PI * t) * out[i + n/2];
+//     std::complex<float> e = out[i];
+//     out[i] = e + v;
+//     out[i + n / 2] = e - v;
+//   }
+// }
 
 void a2i::Spectrogram::normalize(const int multiplier) {
   for(size_t i = 0; i < frame_size / 2; ++i) {

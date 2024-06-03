@@ -110,19 +110,18 @@ int main(int argc, char* argv[]) {
   cv::imshow("Image", canvas);
   cv::imwrite("Lab04img01.jpeg", canvas);
 
-  // cv::Mat tresholdCanvas = canvas;
-  // getTreshold(tresholdCanvas);
-  // cv::namedWindow("Image treshhold", cv::WINDOW_NORMAL);
-  // cv::imshow("Image treshhold", tresholdCanvas);
-  // cv::imwrite("Lab04img02.jpeg", tresholdCanvas);
+  cv::Mat tresholdCanvas = canvas;
+  getTreshold(tresholdCanvas);
+  cv::namedWindow("Image treshhold", cv::WINDOW_NORMAL);
+  cv::imshow("Image treshhold", tresholdCanvas);
+  cv::imwrite("Lab04img02.jpeg", tresholdCanvas);
 
-  // cv::Mat blobsCanvas = canvas;
-  // getBlobs(blobsCanvas);
-  // cv::namedWindow("Image blobs", cv::WINDOW_NORMAL);
-  // cv::imshow("Image blobs", blobsCanvas);
-  // cv::imwrite("Lab04img03.jpeg", blobsCanvas);
+  cv::Mat blobsCanvas = canvas;
+  getBlobs(blobsCanvas);
+  cv::namedWindow("Image blobs", cv::WINDOW_NORMAL);
+  cv::imshow("Image blobs", blobsCanvas);
+  cv::imwrite("Lab04img03.jpeg", blobsCanvas);
 
-  // getBlobsData(blobsCanvas);
 
   cv::waitKey(0);
 

@@ -53,6 +53,10 @@ void autocontrast3(cv::Mat& image, cv::Mat& canvas,
   std::vector<cv::Mat> imageVec, combined(3), separated(3);
   cv::split(image, imageVec);
 
+  // cv::imwrite("a.jpg", imageVec[0]);
+  // cv::imwrite("b.jpg", imageVec[1]);
+  // cv::imwrite("c.jpg", imageVec[2]);
+
   std::vector<std::pair<int, int>> borders(3);
   for(int i = 0; i < 3; i++) {
     getBorders(imageVec[i], q, borders[i]);

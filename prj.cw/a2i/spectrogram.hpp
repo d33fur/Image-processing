@@ -55,8 +55,8 @@ namespace a2i {
     void useWindowFunc();
 
     // void setFurierTransformFunc(int type);
-    void fft(std::vector<std::complex<float>>& in, size_t stride, std::vector<std::complex<float>>& out, size_t n);
-    void fft_c(std::complex<float> in[], size_t stride, std::complex<float> out[], size_t n);
+    // void fft(std::vector<std::complex<float>>& in, size_t stride, std::vector<std::complex<float>>& out, size_t n);
+    // void fft_c(std::complex<float> in[], size_t stride, std::complex<float> out[], size_t n);
     // остальные фурье функции
 
     void normalize(const int multiplier = 20);
