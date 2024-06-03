@@ -5,6 +5,7 @@
 
 int WINDOW_WIDTH = 1600;
 int WINDOW_HEIGHT = 1200;
+unsigned int FRAME_SIZE = 512;
 a2i::Spectrogram g;
 
 typedef struct {
@@ -13,22 +14,22 @@ typedef struct {
 } Frame;
 
 void callback(void *bufferData, unsigned int frames) {
-  if(frames < g.frame_size) return;
+  if(frames < FRAME_SIZE) return;
 
   Frame *fs = static_cast<Frame*>(bufferData);
 
   for(size_t i = 0; i < frames; ++i) {
-    g.in[i] = (fs[i].left + fs[i].right);
+    g.in[i] = (fs[i].left + fs[i].right) / 2; // можно / 2
   }
 
   // домножить на оконную функцию
-  g.useWindowFunc();
+  g.addWindow();
 
   //вызвать fft
-  // g.fft();
+  g.fft();
 
   //нормализовать
-  // g.normalize();
+  g.normalize();
 }
 
 
@@ -49,16 +50,12 @@ int main(int argc, char** argv) {
   InitAudioDevice();
   Music music = LoadMusicStream(file_path);
   PlayMusicStream(music);
-  SetMusicVolume(music, 0.5f);
+  SetMusicVolume(music, 0.0f); //0.5f
 
 
-  g.sample_rate = music.stream.sampleRate;
-  g.sample_size = music.stream.sampleSize;
-  g.setFrameSize(512);
-  // g.frame_size = 512;
-  g.dimension = 2;
+  g.setAudioInfo(music.stream.sampleRate, music.stream.sampleSize, 2);
+  g.setFrameSize(FRAME_SIZE);
   g.setWindowFunc(a2i::HANN);
-  // g.setFurierTransformFunc(a2i::FFT);
 
 
 
@@ -91,10 +88,13 @@ int main(int argc, char** argv) {
 
     cv::Mat img(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC3, cv::Scalar(22, 16, 20));
     
-    // g.drawGrid(img, a2i::LOG);
-    g.drawGrid(img);
+    g.drawGrid(img, a2i::LOG);
+    
     // g.drawSpectrum(img, a2i::LOG, a2i::LINES);
-    g.drawSpectrum(img);
+    
+    // g.drawSpectrum(img);
+    // g.draw_lines_simple_low_2d(img);
+    g.draw_lines_simple_2d(img);
     
     cv::imshow("Spectrum original", img);
     cv::waitKey(1);

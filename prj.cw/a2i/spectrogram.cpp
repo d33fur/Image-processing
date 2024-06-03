@@ -1,37 +1,46 @@
 #include "spectrogram.hpp"
 
 
-void a2i::Spectrogram::setFrameSize(int size) {
-  frame_size = size;
-  in.resize(frame_size); // frame size
-  out.resize(frame_size / 2); // frame size / 2
-  ft_out.resize(frame_size); // frame size
-  window_out.resize(frame_size * 2); // frame size * 2
+void a2i::Spectrogram::setAudioInfo(
+  unsigned int audio_sample_rate, 
+  unsigned int audio_sample_size, 
+  unsigned int audio_channels) 
+{
+  sample_rate = audio_sample_rate;
+  sample_size = audio_sample_size;
+  channels = audio_channels;
 }
 
-void a2i::Spectrogram::setWindowFunc(int type) {
+void a2i::Spectrogram::setFrameSize(int size) 
+{
+  frame_size = size;
+  in.resize(frame_size);
+  out.resize(frame_size / 2);
+  ft_out.resize(frame_size);
+  window_out.resize(frame_size * 2);
+}
+
+void a2i::Spectrogram::setWindowFunc(int type) 
+{
   (this->*windows[type])();
 }
 
-void a2i::Spectrogram::windowHann() {
-  float ND = (float)(frame_size / 2);
+void a2i::Spectrogram::windowHann() 
+{
+  float ND = (float)(frame_size * 2);
 
-  for(size_t i = 0; i < (size_t)(frame_size / 2); ++i) {
+  for(size_t i = 0; i < (size_t)(frame_size * 2); ++i) {
     float nD = static_cast<float>(i);
     float real = 0.5 * (1.0 - cos((2.0 * M_PI * nD) / ND));
     window_out[i] = std::complex<float>(real, 0.0);
   }
 }
 
-void a2i::Spectrogram::useWindowFunc() {
+void a2i::Spectrogram::addWindow() {
   for(size_t i = 0; i < frame_size; ++i) {
     in[i] *= window_out[i];
   }
 }
-
-// void a2i::Spectrogram::setFurierTransformFunc(int type) {
-//   (*FTs[type])();
-// }
 
 // void a2i::Spectrogram::fft(const std::vector<std::complex<float>>& in, size_t stride, std::vector<std::complex<float>>& out, size_t n) {
 //     assert(n > 0);
@@ -54,44 +63,47 @@ void a2i::Spectrogram::useWindowFunc() {
 //     }
 // }
 
-// void a2i::Spectrogram::fft() {
-//   std::complex<float> inn[frame_size], outt[frame_size];
-//   for(size_t i = 0; i < frame_size; i++) {
-//     inn[i] = window_out[i];
-//   }
-//   fft_c(inn, 1, outt, frame_size);
-//   for(size_t i = 0; i < frame_size / 2; i++) {
-//     ft_out[i] = outt[i];
-//   }
-// }
+void a2i::Spectrogram::fft() {
+  std::complex<float> inn[frame_size], outt[frame_size];
+  for(size_t i = 0; i < frame_size; i++) {
+    inn[i] = in[i];
+  }
+  fft_c(inn, 1, outt, frame_size);
+  for(size_t i = 0; i < frame_size / 2; i++) {
+    ft_out[i] = outt[i];
+  }
+}
 
-// void a2i::Spectrogram::fft_c(std::complex<float> in[], size_t stride, std::complex<float> out[], size_t n) {
-//   assert(n > 0);
+void a2i::Spectrogram::fft_c(std::complex<float> in1[], size_t stride1, std::complex<float> out1[], size_t n1) {
+  assert(n1 > 0);
 
-//   if(n == 1) {
-//     out[0] = in[0];
-//     return;
-//   }
+  if(n1 == 1) {
+    out1[0] = in1[0];
+    return;
+  }
 
-//   fft(in, stride * 2, out, n / 2);
-//   fft(in + stride, stride* 2, out + n / 2, n / 2);
+  fft_c(in1, stride1 * 2, out1, n1 / 2);
+  fft_c(in1 + stride1, stride1* 2, out1 + n1 / 2, n1 / 2);
 
-//   for(size_t i = 0; i < n / 2; i++) {
-//     float t = (float)i / n;
-//     std::complex<float> v = (std::complex<float>)cexp(-2 * I * M_PI * t) * out[i + n/2];
-//     std::complex<float> e = out[i];
-//     out[i] = e + v;
-//     out[i + n / 2] = e - v;
-//   }
-// }
+  for(size_t i = 0; i < n1 / 2; i++) {
+    float t = (float)i / n1;
+    std::complex<float> v = (std::complex<float>)cexp(-2 * I * M_PI * t) * out1[i + n1/2];
+    std::complex<float> e = out1[i];
+    out1[i] = e + v;
+    out1[i + n1 / 2] = e - v;
+  }
+}
 
 void a2i::Spectrogram::normalize(const int multiplier) {
   for(size_t i = 0; i < frame_size / 2; ++i) {
+    // std::cout << ft_out[i] << std::endl;
     out[i] = multiplier * std::log10(std::norm(ft_out[i]) / sample_size);
   }
 }
 
-void a2i::Spectrogram::drawGrid(cv::Mat& img) {
+
+// доделать возможность ставить свое кол во рисок и свои значени, передавать массивом мб
+void a2i::Spectrogram::drawGrid(cv::Mat& img, int type) {
   float minDb = -120;
   float maxDb = 0;
   cv::Scalar lineColor(79, 73, 80);
@@ -102,7 +114,14 @@ void a2i::Spectrogram::drawGrid(cv::Mat& img) {
   for(int i = 0; i < num; i++) {
     float freq = freqRisks[i];
     float db = minDb + i * (maxDb - minDb) / num;
-    float x = std::max(0.0, (std::log2(freqRisks[i]) / std::log2((sample_rate / 2))) * img.cols);
+    float x;
+    if(type) {
+      x = std::max(0.0, (std::log2(freqRisks[i]) / std::log2((sample_rate / 2))) * img.cols);
+    }
+    else {
+      x = std::max(0.0, static_cast<double>(freqRisks[i]) * img.cols * 2 / sample_rate);
+    }
+    // float x = std::max(0.0, (std::log2(freqRisks[i]) / std::log2((sample_rate / 2))) * img.cols);
     int y = (1 - (db - minDb) / (maxDb - minDb)) * img.rows;
 
     cv::line(img, cv::Point(x, 0), cv::Point(x, img.rows), lineColor, 1);
@@ -195,21 +214,38 @@ double a2i::Spectrogram::interpolate(double from ,double to ,float percent) {
   return from + ( difference * percent );
 }
 
-// void a2i::Spectrogram::callback(void *bufferData, unsigned int frames) {
-//   if(frames < frame_size) return;
+void a2i::Spectrogram::draw_lines_simple_low_2d(cv::Mat& img) {
+  float maxDb = 190;
+  int step = 1;
+  for(size_t i = 0; i < frame_size / 2; i += step) {
+  // std::cout << out[i] << std::endl;
 
-//   a2i::Frame *fs = static_cast<a2i::Frame*>(bufferData);
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(1) << (i * sample_rate / 2) / (frame_size / 2);
 
-//   for(size_t i = 0; i < frames; ++i) {
-//     in[i] = (fs[i].left + fs[i].right) * hannOut[i];
-//   }
+    if(out[i] > 0) {
+      int pos = std::max(0., (i / (double)(frame_size/2)) * img.cols);
+      double y1 = (1 - (out[i] / maxDb)) * img.rows;
+      cv::line(img, cv::Point(pos, img.rows), cv::Point(pos, y1), cv::Scalar(127, 127, 127), 1);
+    }
+  }
+}
 
-  
-//   // dft(in, out, frame_size);
-//   fft(in, 1, out, sample_rate);
-
-
-//   for(size_t i = 0; i < frame_size / 2; ++i) {
-//     powerOut[i] = 20 * std::log10(std::norm(out[i]) / sample_rate); // можно делить на sample size
-//   }
-// }
+void a2i::Spectrogram::draw_lines_simple_2d(cv::Mat& img) {
+  float maxDb = 190;
+  int step = 1;
+  for(size_t i = 0; i < frame_size / 2; i += step) {
+    int pos = std::max(0., (i / (double)(frame_size/2)) * img.cols);
+    double y1;
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(1) << (i * sample_rate / 2) / (frame_size / 2);
+    if(out[i] < 0) {
+      y1 = (img.rows / 2) + ((std::abs(out[i]) / maxDb)) * (img.rows / 2);
+      cv::line(img, cv::Point(pos, (img.rows / 2)), cv::Point(pos, y1), cv::Scalar(127, 127, 127), 1);
+    }
+    else {
+      y1 = (1 - (out[i] / maxDb)) * (img.rows / 2);
+      cv::line(img, cv::Point(pos, (img.rows / 2)), cv::Point(pos, y1), cv::Scalar(127, 127, 127), 1);
+    }
+  }
+}
