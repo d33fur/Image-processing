@@ -19,7 +19,7 @@ void callback(void *bufferData, unsigned int frames) {
   Frame *fs = static_cast<Frame*>(bufferData);
 
   for(size_t i = 0; i < frames; ++i) {
-    g.in[i] = (fs[i].left + fs[i].right) / 2; // можно / 2
+    g.in[i] = (fs[i].left + fs[i].right) / 2;
   }
 
   // домножить на оконную функцию
@@ -53,11 +53,19 @@ int main(int argc, char** argv) {
   SetMusicVolume(music, 0.0f); //0.5f
 
 
-  g.setAudioInfo(music.stream.sampleRate, music.stream.sampleSize, 2);
+  g.setAudioInfo(music.stream.sampleRate, music.stream.sampleSize, 2, {0, 190});
   g.setFrameSize(FRAME_SIZE);
-  g.setWindowFunc(a2i::HANN);
 
-
+  g.setWindowFunc(a2i::SINE);
+  // g.setWindowFunc(a2i::HANN);
+  // g.setWindowFunc(a2i::HAMMING);
+  // g.setWindowFunc(a2i::BLACKMAN);
+  // g.setWindowFunc(a2i::NUTTALL);
+  // g.setWindowFunc(a2i::BLACKMAN_NUTTALL);
+  // g.setWindowFunc(a2i::BLACKMAN_HARRIS)
+  // g.setWindowFunc(a2i::FLAT_TOP);
+  // g.setWindowFunc(a2i::BARTLETT_HANN);
+  // g.setWindowFunc(a2i::HANN_POISSON);
 
   AttachAudioStreamProcessor(music.stream, callback);
   float time_played = 0.0f;
@@ -88,13 +96,18 @@ int main(int argc, char** argv) {
 
     cv::Mat img(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC3, cv::Scalar(22, 16, 20));
     
-    g.drawGrid(img, a2i::LOG);
-    
-    // g.drawSpectrum(img, a2i::LOG, a2i::LINES);
-    
+    // g.drawGrid(img, a2i::LOG, 1, {0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4092, 10000}, 10);
+    g.drawGrid(img, a2i::LOG, 1);
     // g.drawSpectrum(img);
-    // g.draw_lines_simple_low_2d(img);
-    g.draw_lines_simple_2d(img);
+
+    // g.draw_lines_simple_2d(img);
+
+    g.draw_log_bezie_2d(img);
+
+    // g.draw_log_lines_2d(img);
+
+
+    cv::applyColorMap(img, img, cv::COLORMAP_BONE);
     
     cv::imshow("Spectrum original", img);
     cv::waitKey(1);

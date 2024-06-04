@@ -24,71 +24,78 @@ namespace a2i {
       BEZIE = 1
     };
 
+    enum fillTypes {
+      NOT_FILLED = 0, 
+      ONE_COLOR = 1,
+      GRADIENT = 2
+    };
+
     enum windowFunctions {
-      TRIANGULAR = 0,
-      PARZEN = 1,
-      WELCH = 2,
-      SINE = 3,
-      POWER_OF_SINE = 4,
-      COSINE_SUM = 5,
-      HANN = 6,
-      HAMMING = 7,
-      BLACKMAN = 8,
-      NUTTALL = 9,
-      BLACKMAN_NUTTALL = 10,
-      BLACKMAN_HARRIS = 11,
-      FLAT_TOP = 12,
-      GAUSSIAN = 13,
-      CONFINED_GAUSSIAN = 14,
-      APPROXIMATE_CONFINED_GAUSSIAN = 15, // Generalized adaptive polynomial
-      GENERALIZED_NORMAL = 16,
-      TUKEY = 17,
-      PLANCK_TAPER = 18,
-      BARTLETT_HANN = 19,
-      HANN_POISSON = 20,
-      GAP = 21,
-      LANCZOS = 22
+      SINE = 0,
+      HANN = 1,
+      HAMMING = 2,
+      BLACKMAN = 3,
+      NUTTALL = 4,
+      BLACKMAN_NUTTALL = 5,
+      BLACKMAN_HARRIS = 6,
+      FLAT_TOP = 7,
+      BARTLETT_HANN = 8,
+      HANN_POISSON = 9
     };
 
 
-
+  // доделать 3д, 
+  // сделать типы заполнений градиент, 
+  // 1 цвет на выбор или нет цвета, 
+  // выбор отрисовки через енамы, добавить парочку функций фурье
+  
   class Spectrogram {
 
   public:
     Spectrogram() {};
     ~Spectrogram() {};
 
-    void setAudioInfo(unsigned int audio_sample_rate, unsigned int audio_sample_size, unsigned int audio_channels);
+    void setAudioInfo(
+      unsigned int audio_sample_rate, 
+      unsigned int audio_sample_size, 
+      unsigned int audio_channels,
+      std::pair<int, int> audio_min_max_db);
+
     void setFrameSize(int size);
     void setWindowFunc(int type);
-
-
     void addWindow();
 
     void fft();
-    void fft_c(std::complex<float> in[], size_t stride, std::complex<float> out[], size_t n);
+    
     // остальные фурье функции
     // void dft(std::complex<float> in[], std::complex<float> out[], size_t n);
 
 
     void normalize(const int multiplier = 20);
-    void drawGrid(cv::Mat& img, int type);
+    void drawGrid(
+      cv::Mat& img, 
+      const int type, 
+      const bool enable_text = true, 
+      const std::vector<unsigned int>& freqs = {}, 
+      const int number_of_db_risks = 10,
+      const cv::Scalar line_color = cv::Scalar(79, 73, 80), 
+      const cv::Scalar text_color = cv::Scalar(51, 186, 243));
 
-    void drawSpectrum(cv::Mat& img);
-    // void drawSpectrum(cv::Mat& image, graphMode mode, lineType type);
+    void drawSpectrum(
+      cv::Mat& img, 
+      const int line_type = 0, 
+      const int graph_mode = 1, 
+      const int fill_type = 1, 
+      const cv::Scalar line_color = cv::Scalar(255, 255, 255), 
+      const cv::Scalar underline_color = cv::Scalar(127, 127, 127));
 
-    double interpolate(double from ,double to ,float percent);
 
-    void draw_lines_simple_low_2d(cv::Mat& img);
+    void draw_log_bezie_2d(cv::Mat& img);
     void draw_lines_simple_2d(cv::Mat& img);
-    // void draw_log_bezie_2d(cv::Mat& img);
-    // double interpolate(double from ,double to ,float percent);
-    // void draw_log_lines_2d(cv::Mat& img);
-
+    void draw_log_lines_2d(cv::Mat& img);
 
     // const float freq_start = 20.0;
     // const float freq_end = 20000.0;
-    // float max_db = 190;
 
     std::vector<std::complex<float>> in; // frame size
     std::vector<float> out; // frame size / 2
@@ -96,15 +103,35 @@ namespace a2i {
     std::vector<std::complex<float>> window_out; // frame size * 2
   
   private:
-    void windowHann();
-    // остальные оконные функции
+    void fft_c(std::complex<float> in[], size_t stride, std::complex<float> out[], size_t n);
 
+    double interpolate(double from ,double to ,float percent);
+
+    void windowSine();
+    void windowHann();
+    void windowHamming();
+    void windowBlackman();
+    void windowNuttall();
+    void windowBlackmanNuttall();
+    void windowBlackmanHarris();
+    void windowFlatTop();
+    void windowBartlettHann();
+    void windowHannPoisson();
 
 
     using windowFuncType = void (Spectrogram::*)();
 
     std::vector<windowFuncType> windows = {
-        &Spectrogram::windowHann
+      &Spectrogram::windowSine,
+      &Spectrogram::windowHann,
+      &Spectrogram::windowHamming,
+      &Spectrogram::windowBlackman,
+      &Spectrogram::windowNuttall,
+      &Spectrogram::windowBlackmanNuttall,
+      &Spectrogram::windowBlackmanHarris,
+      &Spectrogram::windowFlatTop,
+      &Spectrogram::windowBartlettHann,
+      &Spectrogram::windowHannPoisson
     };
 
 
@@ -112,9 +139,8 @@ namespace a2i {
     unsigned int frame_size;
     unsigned int sample_rate;
     unsigned int sample_size;
-
+    std::pair<int, int> min_max_db;
   };
-
 };
 
 
