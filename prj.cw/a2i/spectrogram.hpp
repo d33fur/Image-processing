@@ -10,7 +10,9 @@
 #include <math.h>
 #include <algorithm>
 #include <vector>
+
 #include <opencv2/opencv.hpp>
+#include <fftw3.h>
 
 namespace a2i {
 
@@ -59,13 +61,14 @@ namespace a2i {
       unsigned int audio_sample_rate, 
       unsigned int audio_sample_size, 
       unsigned int audio_channels,
-      std::pair<int, int> audio_min_max_db);
+      std::pair<int, int> audio_min_max_db = {-90, 0});
 
+    void setFreqRange(std::pair<unsigned int, unsigned int> audio_freq_range = {0, 20000});
     void setFrameSize(int size);
     void setWindowFunc(int type);
     void addWindow();
 
-    void fft();
+    void fftw1();
     
     // остальные фурье функции
     // void dft(std::complex<float> in[], std::complex<float> out[], size_t n);
@@ -97,14 +100,12 @@ namespace a2i {
     // const float freq_start = 20.0;
     // const float freq_end = 20000.0;
 
-    std::vector<std::complex<float>> in; // frame size
+    std::vector<float> in; // frame size
     std::vector<float> out; // frame size / 2
     std::vector<std::complex<float>> ft_out; // frame size
-    std::vector<std::complex<float>> window_out; // frame size * 2
+    std::vector<float> window_out; // frame size * 2
   
   private:
-    void fft_c(std::complex<float> in[], size_t stride, std::complex<float> out[], size_t n);
-
     double interpolate(double from ,double to ,float percent);
 
     void windowSine();
@@ -140,6 +141,8 @@ namespace a2i {
     unsigned int sample_rate;
     unsigned int sample_size;
     std::pair<int, int> min_max_db;
+    float window_correction;
+    std::pair<unsigned int, unsigned int> freq_range;
   };
 };
 
