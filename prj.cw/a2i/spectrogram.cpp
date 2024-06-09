@@ -22,9 +22,10 @@ void a2i::Spectrogram::setFrameSize(int size)
 {
   frame_size = size;
   in.resize(frame_size);
+  in_in.resize(frame_size);
   out.resize(frame_size / 2);
   ft_out.resize(frame_size);
-  window_out.resize(frame_size * 2);
+  window_out.resize(frame_size);
 }
 
 void a2i::Spectrogram::setWindowFunc(int type) 
@@ -35,7 +36,7 @@ void a2i::Spectrogram::setWindowFunc(int type)
 void a2i::Spectrogram::windowSine()
 {
   window_correction = 2.0;
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = sin(M_PI * i / (frame_size * 2));
   }
@@ -44,16 +45,16 @@ void a2i::Spectrogram::windowSine()
 void a2i::Spectrogram::windowHann() 
 {
   window_correction = 2.0;
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
-    window_out[i] = 0.5 * (1.0 - cos((2.0 * M_PI * i) / (frame_size * 2)));
+    window_out[i] = 0.5 * (1.0 - cos((2.0 * M_PI * i) / (frame_size)));
   }
 }
 
 void a2i::Spectrogram::windowHamming()
 {
   window_correction = 1.85;
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = (25. / 46) * (1.0 - cos((2.0 * M_PI * i) / (frame_size * 2)));
   }
@@ -67,7 +68,7 @@ void a2i::Spectrogram::windowBlackman()
   float a1 = 1 / 2;
   float a2 = alfa / 2;
 
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = a0 - a1 * cos((2.0 * M_PI * i) / (frame_size * 2)) + a2 * cos((4.0 * M_PI * i) / (frame_size * 2));
   }
@@ -81,7 +82,7 @@ void a2i::Spectrogram::windowNuttall()
   float a2 = 0.144232;
   float a3 = 0.012604;
 
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = a0 - a1 * cos((2.0 * M_PI * i) / (frame_size * 2)) + a2 * cos((4.0 * M_PI * i) / (frame_size * 2)) - a3 * cos((6.0 * M_PI * i) / (frame_size * 2));
   }
@@ -95,7 +96,7 @@ void a2i::Spectrogram::windowBlackmanNuttall()
   float a2 = 0.1365995;
   float a3 = 0.0106411;
 
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = a0 - a1 * cos((2.0 * M_PI * i) / (frame_size * 2)) + a2 * cos((4.0 * M_PI * i) / (frame_size * 2)) - a3 * cos((6.0 * M_PI * i) / (frame_size * 2));
   }
@@ -109,7 +110,7 @@ void a2i::Spectrogram::windowBlackmanHarris()
   float a2 = 0.14128;
   float a3 = 0.01168;
 
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = a0 - a1 * cos((2.0 * M_PI * i) / (frame_size * 2)) + a2 * cos((4.0 * M_PI * i) / (frame_size * 2)) - a3 * cos((6.0 * M_PI * i) / (frame_size * 2));
   }
@@ -124,7 +125,7 @@ void a2i::Spectrogram::windowFlatTop()
   float a3 = 0.083578947;
   float a4 = 0.006947368;
 
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = a0 - a1 * cos((2.0 * M_PI * i) / (frame_size * 2)) + a2 * cos((4.0 * M_PI * i) / (frame_size * 2)) - a3 * cos((6.0 * M_PI * i) / (frame_size * 2)) + a4 * cos((8.0 * M_PI * i) / (frame_size * 2));
   }
@@ -137,7 +138,7 @@ void a2i::Spectrogram::windowBartlettHann()
   float a1 = 0.48;
   float a2 = 0.38;
 
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = a0 - a1 * abs(static_cast<double>(i) / (frame_size * 2) - 1 / 2) - a2 * cos((2.0 * M_PI * i) / (frame_size * 2));
   }
@@ -148,7 +149,7 @@ void a2i::Spectrogram::windowHannPoisson()
   window_correction = 2.0;
   float a = 2; // >= 2
 
-  for(size_t i = 0; i < static_cast<size_t>(frame_size * 2); ++i)
+  for(size_t i = 0; i < static_cast<size_t>(frame_size); ++i)
   {
     window_out[i] = (1. / 2) *(1. - cos((2.0 * M_PI * i) / (frame_size * 2))) * pow(M_E, -a * abs(static_cast<double>(frame_size * 2 - 2 * i) / (frame_size * 2)));
   }
@@ -184,29 +185,19 @@ void a2i::Spectrogram::fftw1()
 
   fftw_destroy_plan(p);
   fftw_cleanup();
+
+
+
 }
 
 void a2i::Spectrogram::normalize(const int multiplier)
 {
   for(size_t i = 0; i < frame_size / 2; ++i)
   {
-    float db_value = multiplier * std::log10(std::norm(ft_out[i]) / (sample_size * window_correction)  + 1e-10);
+    float db_value = multiplier * std::log10(std::norm(ft_out[i]) / frame_size + 1e-10);
 
-    // float db_value = multiplier * std::log10(std::norm(ft_out[i]) + 1e-10);
-
-    if(db_value > 50.0 || db_value < -200.0)
-      std::cout << db_value << std::endl;
-
-    if (db_value < min_max_db.first)
-    {
-      db_value = min_max_db.first + 1;
-    }
-
-    if (db_value > min_max_db.second)
-    {
-      db_value = min_max_db.first - 1;
-    }
-
+    if (db_value < min_max_db.first) db_value = min_max_db.first + 1;
+    if (db_value > min_max_db.second) db_value = min_max_db.first - 1;
 
     out[i] = db_value;
   }
@@ -228,7 +219,7 @@ void a2i::Spectrogram::drawGrid(
 
   if(freqs.size() == 0)
   {
-    freq_risks = {0, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, static_cast<unsigned int>(sample_rate / 2)};
+    freq_risks = {20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000};
   }
   else
   {
@@ -240,10 +231,21 @@ void a2i::Spectrogram::drawGrid(
 
   int freq_size = freq_risks.size();
 
-  for(int i = 0; i < freq_size; i++)
+  float x = 0.0f;
+
+  cv::line(img, cv::Point(x, 0), cv::Point(x, img.rows), line_color, 1);
+
+  if(enable_text)
   {
-    float x = type ? 
-      std::max(0., (std::log2(freq_risks[i]) / std::log2((sample_rate / 2))) * img.cols)
+    std::stringstream ss;
+    ss << static_cast<int>(freq_risks[0]);
+    cv::putText(img, ss.str(), cv::Point(x, 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1);
+  }
+
+  for(int i = 1; i < freq_size; i++)
+  {
+    x = type ? 
+      std::max(0., ((std::log2(freq_risks[i]) - std::log2(freq_risks[0])) / (std::log2(freq_range.second) - std::log2(freq_risks[0]))) * img.cols)
     : std::max(0., static_cast<double>(freq_risks[i] - freq_risks[0])) * img.cols * 2 / sample_rate;
 
     cv::line(img, cv::Point(x, 0), cv::Point(x, img.rows), line_color, 1);
@@ -289,11 +291,19 @@ double a2i::Spectrogram::interpolate(double from ,double to ,float percent) {
 }
 
 void a2i::Spectrogram::draw_log_bezie_2d(cv::Mat& img) {
-  std::vector<cv::Point> control_points = {cv::Point(0.0, img.rows)};
-  // std::vector<cv::Point> control_points;
+  // std::vector<cv::Point> control_points = {cv::Point(0.0, img.rows)};
+
+  int y_first;
+  double x_first = 0.0;
+
+  bool first_point = true;
+
+  std::vector<cv::Point> control_points;
   for(size_t i = 0; i < frame_size / 2; i += 1) {
-    double pos = std::max(0., (double)(std::log2(i * (sample_rate / 2) / (frame_size / 2)) / std::log2((sample_rate / 2))) * img.cols);
+    double pos = std::min(static_cast<double>(img.cols), std::max(0., (double)((std::log2(i * (sample_rate / 2) / (frame_size / 2)) - std::log2(freq_range.first)) / (std::log2(freq_range.second) - std::log2(freq_range.first))) * img.cols));
     int y;
+
+    double freq = i * (sample_rate / 2) / (frame_size / 2);
 
     if(out[i] < 0) {
       y = (1 - (std::abs(min_max_db.first - out[i]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
@@ -302,25 +312,34 @@ void a2i::Spectrogram::draw_log_bezie_2d(cv::Mat& img) {
       y = (1 - ((std::abs(min_max_db.first) + out[i]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
     }
 
-    control_points.push_back(cv::Point(pos, y));
+    if(freq >= freq_range.first && freq <= freq_range.second)
+    {
+      if(first_point)
+      {
+        control_points.push_back(cv::Point(x_first, y_first));
+        first_point = false;
+      }
+      control_points.push_back(cv::Point(pos, y));
+      
+    }
+    else
+    { 
+      y_first = y;
+
+      if(!first_point)
+      {
+        control_points.push_back(cv::Point(img.cols, y));
+      }
+    }
   }
-  float sstep = 0.01;
 
   for(size_t i = 2; i < control_points.size() - 1; i+=3) {
-    if(i < 3) {
-      sstep = 0.0001;
-    }
-    else if(i < 6) {
-      sstep = 0.001;
-    }
-    else {
-      sstep = 0.01;
-    }
-
     cv::Point p0 = control_points[i - 2];
     cv::Point p1 = control_points[i - 1];
     cv::Point p2 = control_points[i];
     cv::Point p3 = control_points[i + 1];
+
+    double sstep = 0.6 / std::max(static_cast<double>(abs(p0.x - p3.x)), 0.0001);
 
     for(float i = 0; i < 1; i += sstep){
       // The Green Lines
@@ -354,7 +373,7 @@ void a2i::Spectrogram::draw_log_bezie_2d(cv::Mat& img) {
 
       // cv::line(img, cv::Point(x, y), cv::Point(x, img.rows), cv::Scalar(79, 73, 80), 1); // одним цветом заливка
     
-      int gradient_color = static_cast<int>((y / static_cast<double>(img.rows)) * 255);
+      int gradient_color = static_cast<int>((1 - y / static_cast<double>(img.rows)) * 127); // 255
       cv::line(img, cv::Point(x, y), cv::Point(x, img.rows), cv::Scalar(gradient_color, gradient_color, gradient_color), 1);
   
 
