@@ -11,40 +11,44 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <deque>
 
 #include <opencv2/opencv.hpp>
 #include <fftw3.h>
 
 namespace a2i {
 
-    enum graphModes {
-      LIN = 0, 
-      LOG = 1
-    };
+  enum graphModes {
+    LIN = 0, 
+    LOG = 1
+  };
 
-    enum lineTypes {
-      LINES = 0,
-      BEZIE = 1
-    };
+  enum lineTypes {
+    LINES = 0,
+    BEZIE = 1,
+    BARS = 2,
+    SQRT = 3,
+    CUBIC = 4
+  };
 
-    enum fillTypes {
-      NOT_FILLED = 0, 
-      ONE_COLOR = 1,
-      GRADIENT = 2
-    };
+  enum fillTypes {
+    NOT_FILLED = 0, 
+    ONE_COLOR = 1,
+    GRADIENT = 2
+  };
 
-    enum windowFunctions {
-      SINE = 0,
-      HANN = 1,
-      HAMMING = 2,
-      BLACKMAN = 3,
-      NUTTALL = 4,
-      BLACKMAN_NUTTALL = 5,
-      BLACKMAN_HARRIS = 6,
-      FLAT_TOP = 7,
-      BARTLETT_HANN = 8,
-      HANN_POISSON = 9
-    };
+  enum windowFunctions {
+    SINE = 0,
+    HANN = 1,
+    HAMMING = 2,
+    BLACKMAN = 3,
+    NUTTALL = 4,
+    BLACKMAN_NUTTALL = 5,
+    BLACKMAN_HARRIS = 6,
+    FLAT_TOP = 7,
+    BARTLETT_HANN = 8,
+    HANN_POISSON = 9
+  };
 
 
   // доделать 3д, 
@@ -69,7 +73,7 @@ namespace a2i {
     void setWindowFunc(int type);
     void addWindow();
 
-    void fftw1();
+    void fft();
     
     // остальные фурье функции
     // void dft(std::complex<float> in[], std::complex<float> out[], size_t n);
@@ -106,6 +110,7 @@ namespace a2i {
     std::vector<float> out; // frame size / 2
     std::vector<std::complex<float>> ft_out; // frame size
     std::vector<float> window_out; // frame size * 2
+    std::deque<float> in_d;
   
   private:
     double interpolate(double from ,double to ,float percent);
@@ -148,6 +153,7 @@ namespace a2i {
     float window_correction;
     std::pair<unsigned int, unsigned int> freq_range;
     std::map<double, double> freq_dictionary;
+
   };
 };
 

@@ -8,7 +8,7 @@ int WINDOW_HEIGHT = 1200;
 unsigned int FRAME_SIZE = 512;
 a2i::Spectrogram g;
 
-int counter = 0;
+// int counter = 0;
 int multiplier = 20;
 bool first = true;
 bool stop = true;
@@ -25,40 +25,73 @@ void callback(void *bufferData, unsigned int frames)
 
   Frame *fs = static_cast<Frame*>(bufferData);
 
-  if(counter < static_cast<int>(FRAME_SIZE / 512) - 1 && FRAME_SIZE != 512)
+  // if(counter < static_cast<int>(FRAME_SIZE / 512) - 1 && FRAME_SIZE != 512)
+  // {
+  //   for(size_t i = 0 ; i < frames; ++i) 
+  //   {
+  //     g.in[i + counter * frames] = (fs[i].left + fs[i].right) / 2;
+  //   }
+  //   if(counter == static_cast<int>(FRAME_SIZE / 512) - 2)
+  //   {
+  //     first = false;
+  //   }
+  //   counter++;
+  // }
+  // else
+  // {
+  //   counter = 0;
+
+  //   for(size_t i = 0; i < frames; ++i) 
+  //   {
+  //     g.in[i + counter * frames] = (fs[i].left + fs[i].right) / 2;
+  //   }
+
+  //   // домножить на оконную функцию
+  //   g.addWindow();
+
+  //   //вызвать fft
+  //   g.fft();
+
+  //   //нормализовать
+  //   g.normalize(multiplier);
+
+  //   FRAME_SIZE == 512 ? first = false : first = true;    
+  // }
+
+  
+
+  if(g.in_d.size() != FRAME_SIZE)
   {
-    for(size_t i = 0 ; i < frames / 2; ++i) 
+    for(size_t i = 0 ; i < frames; ++i) 
     {
-      g.in[i + counter * frames] = (fs[i].left + fs[i].right) / 2;
+      g.in_d.push_back((fs[i].left + fs[i].right) / 2);
     }
-    if(counter == static_cast<int>(FRAME_SIZE / 512) - 2)
-    {
-      first = false;
-    }
-    counter++;
+
+    first = true;
   }
   else
   {
-    counter = 0;
-
-    for(size_t i = 0; i < frames / 2; ++i) 
+    g.in_d.erase(g.in_d.begin(), g.in_d.begin() + frames);
+    for(size_t i = 0 ; i < frames; ++i) 
     {
-      g.in[i + counter * frames] = (fs[i].left + fs[i].right) / 2;
+      g.in_d.push_back((fs[i].left + fs[i].right) / 2);
     }
 
-    // домножить на оконную функцию
     g.addWindow();
-
-    //вызвать fft
-    // g.fft();
-    g.fftw1();
-
-    //нормализовать
+    g.fft();
     g.normalize(multiplier);
 
-    FRAME_SIZE == 512 ? first = false : first = true;    
+    first = false;
   }
 
+  // if(in_d.size() == FRAME_SIZE)
+  // {
+  //   in_d.erase(in_d.begin(), in_d.begin() + frames);
+  // }
+  // for(size_t i = 0 ; i < frames; ++i) 
+  // {
+  //   in_d.push_back((fs[i].left + fs[i].right) / 2);
+  // }
 }
 
 std::pair<int, int> parseRange(const std::string& str) 
@@ -86,6 +119,8 @@ int main(int argc, char** argv)
   "{ p    |               | path to audiofile         }"
   "{ a    |    -90,6      | amplitude range           }"
   "{ w    |       0       | window function           }"
+  "{ l    |       0       | line type                 }"
+  "{ g    |       1       | graph mode                }"
   "{ m    |       20      | mormalize multiplier      }"
   "{ mic  |               | use microphone            }"
   "{ f    |      512      | frame size                }"
@@ -95,6 +130,8 @@ int main(int argc, char** argv)
   multiplier = parser.get<int>("m");
   auto amp = parseRange(parser.get<std::string>("a"));
   auto window_function = parser.get<int>("w");
+  auto line_type = parser.get<int>("l");
+  auto graph_mode = parser.get<int>("g");
   auto use_mic = parser.has("mic");
   FRAME_SIZE = parser.get<unsigned int>("f");
   auto num_frames = parser.get<int>("n");
@@ -118,7 +155,7 @@ int main(int argc, char** argv)
     stream = LoadAudioStream(44100, 16, 2);
     music = LoadMusicStream(file_path);
     PlayMusicStream(music);
-    SetMusicVolume(music, 0.1f);
+    SetMusicVolume(music, 0.8f);
     AttachAudioStreamProcessor(music.stream, callback);
   }
 
@@ -135,7 +172,7 @@ int main(int argc, char** argv)
   cv::Mat cur_img = cv::Mat::zeros(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC3);
   cv::Mat grid = cv::Mat::zeros(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC3);
   cv::Mat mask = cv::Mat::zeros(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC1);
-  g.drawGrid(grid, a2i::LOG, 1, {20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000}, 10);
+  g.drawGrid(grid, graph_mode, 1, {20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000}, 10);
 
   while(true) 
   {
@@ -184,14 +221,12 @@ int main(int argc, char** argv)
       img = cv::Mat(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC3, cv::Scalar(22, 16, 20));
       cv::add(grid, img, img);
 
-      // g.drawSpectrum(img);
-
-      // g.draw_lines_simple_2d(img);
-
       cur_img = cv::Mat::zeros(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC3);
-      g.draw_log_bezie_2d(cur_img);
 
+      // g.draw_log_bezie_2d(cur_img);
       // g.draw_log_lines_2d(cur_img);
+      g.drawSpectrum(cur_img, line_type, graph_mode);
+      
 
       // cv::cvtColor(cur_img, mask, cv::COLOR_BGR2GRAY);
       // cv::threshold(mask, mask, 1, 255, cv::THRESH_BINARY_INV);
@@ -199,11 +234,11 @@ int main(int argc, char** argv)
 
       for(int i = num_frames - 1; i >= 0; --i)
       {
-        // blendImages(prev_frames[i], img, mask);
-        cv::addWeighted(img, 1.0, prev_frames[i], 0.5 / (i + 2), 0.0, img);
+        cv::addWeighted(img, 1.0, prev_frames[i], 0.3 / (i+1), 0.0, img);
       }
 
       cv::addWeighted(img, 1.0, cur_img, 1.0, 0.0, img);
+
 
       cv::applyColorMap(img, img, cv::COLORMAP_TWILIGHT);//COLORMAP_TWILIGHT или COLORMAP_TWILIGHT_SHIFTED
       

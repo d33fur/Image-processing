@@ -163,7 +163,7 @@ void a2i::Spectrogram::addWindow()
   }
 }
 
-void a2i::Spectrogram::fftw1()
+void a2i::Spectrogram::fft()
 {
   double in1[frame_size];
   fftw_complex out1[frame_size];
@@ -171,7 +171,8 @@ void a2i::Spectrogram::fftw1()
 
   for(size_t i = 0; i < frame_size; i++)
   {
-    in1[i] = in[i];
+    in1[i] = in_d[i];
+    // in1[i] = in[i];
   }
 
   p = fftw_plan_dft_r2c_1d(frame_size, in1, out1, FFTW_ESTIMATE);
@@ -185,9 +186,6 @@ void a2i::Spectrogram::fftw1()
 
   fftw_destroy_plan(p);
   fftw_cleanup();
-
-
-
 }
 
 void a2i::Spectrogram::normalize(const int multiplier)
@@ -280,9 +278,158 @@ void a2i::Spectrogram::drawSpectrum(
   const int graph_mode, 
   const int fill_type, 
   const cv::Scalar line_color, 
-  const cv::Scalar underline_color) {
-  
+  const cv::Scalar underline_color) 
+{
+  int y_first;
+  double x_first = 0.0;
+  bool first_point = true;
 
+  std::vector<cv::Point> control_points;
+  for(size_t i = 0; i < frame_size / 2; i += 1) {
+    double x;
+    int y;
+
+    double freq = i * static_cast<double>(sample_rate) / frame_size;
+
+    
+    switch(graph_mode)
+    {
+      case LIN :
+      {
+        
+        x = std::min(static_cast<double>(img.cols), 
+            std::max(0., (freq - freq_range.first) * img.cols / (freq_range.second - freq_range.first)));
+        break;
+      }
+
+      case LOG :
+      {
+        x = std::min(static_cast<double>(img.cols), 
+            std::max(0., (std::log2(freq) - std::log2(freq_range.first))  * img.cols / (std::log2(freq_range.second) - std::log2(freq_range.first))));
+        break;
+      }
+
+      // default :
+      // {
+      //   break;
+      // }
+    }
+
+    if(out[i] < 0) {
+      y = (1 - (std::abs(min_max_db.first - out[i]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
+    }
+    else {
+      y = (1 - ((std::abs(min_max_db.first) + out[i]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
+    }
+
+    if(freq >= freq_range.first && freq <= freq_range.second)
+    {
+      if(first_point)
+      {
+        control_points.push_back(cv::Point(x_first, y_first));
+        first_point = false;
+      }
+      control_points.push_back(cv::Point(x, y));
+      
+    }
+    else
+    { 
+      y_first = y;
+
+      if(!first_point)
+      {
+        control_points.push_back(cv::Point(img.cols, y));
+      }
+    }
+  }
+
+  switch(line_type)
+  {
+    case BEZIE :
+    {
+      for(size_t i = 2; i < control_points.size() - 1; i+=3) {
+        cv::Point p0 = control_points[i - 2];
+        cv::Point p1 = control_points[i - 1];
+        cv::Point p2 = control_points[i];
+        cv::Point p3 = control_points[i + 1];
+
+        double sstep = 0.6 / std::max(static_cast<double>(abs(p0.x - p3.x)), 0.0001);
+
+        for(float i = 0; i < 1; i += sstep){
+          auto xa = interpolate(p0.x, p1.x ,i);
+          auto ya = interpolate(p0.y, p1.y ,i);
+          auto xb = interpolate(p1.x, p2.x ,i);
+          auto yb = interpolate(p1.y, p2.y ,i);
+          auto xc = interpolate(p2.x, p3.x ,i);
+          auto yc = interpolate(p2.y, p3.y ,i);
+
+          auto xm = interpolate(xa, xb, i);
+          auto ym = interpolate(ya, yb, i);
+          auto xn = interpolate(xb, xc, i);
+          auto yn = interpolate(yb, yc, i);
+
+          auto x = interpolate(xm ,xn ,i);
+          auto y = interpolate(ym ,yn ,i);
+
+          if(x >= img.cols) x = img.cols - 1;
+          if(y >= img.rows) y = img.rows - 1;
+          if(x <= 0) x = 1;
+          if(y <= 0) y = 1;
+
+          // img.at<cv::Vec3b>(cv::Point(x, y)) = cv::Vec3b(255, 255, 255);
+          // int radius = 2; // Радиус круга в пикселях
+          // cv::circle(img, cv::Point(x, y), radius, cv::Scalar(255, 255, 255), -1);
+
+          // cv::line(img, cv::Point(x, y), cv::Point(x, img.rows), cv::Scalar(79, 73, 80), 1); // одним цветом заливка
+        
+          int gradient_color = static_cast<int>((1 - y / static_cast<double>(img.rows)) * 127); // 255
+          cv::line(img, cv::Point(x, y), cv::Point(x, img.rows), cv::Scalar(gradient_color, gradient_color, gradient_color), 1);
+      
+
+        }
+      }
+
+      break;
+    }
+
+    case LINES :
+    {
+      for(size_t i = 0; i < control_points.size() - 1; i+=1) {
+        cv::Point vertices[4];
+        vertices[0] = control_points[i];
+        vertices[1] = control_points[i+1];
+        vertices[2] = cv::Point(control_points[i+1].x, img.rows);
+        vertices[3] = cv::Point(control_points[i].x, img.rows);
+
+        // cv::Scalar transparentColor(65, 56, 63);
+        // cv::fillConvexPoly(img, vertices, 4, transparentColor, cv::LINE_8);
+
+        for (int x = vertices[0].x; x < vertices[1].x; x++) {
+          double t = (double)(x - vertices[0].x) / (vertices[1].x - vertices[0].x);
+          int y = interpolate(vertices[0].y, vertices[1].y, t);
+          int gradient_color = static_cast<int>((1 - y / static_cast<double>(img.rows)) * 127);
+          cv::line(img, cv::Point(x, y), cv::Point(x, img.rows), cv::Scalar(gradient_color, gradient_color, gradient_color), 1);
+        }
+
+        // cv::line(img, control_points[i], control_points[i+1], cv::Scalar(255, 255, 255), 2);
+      }
+
+      break;
+    }
+
+    case BARS :
+    {
+      for(size_t i = 0; i < control_points.size(); i+=1) {
+
+        // cv::Scalar transparentColor(65, 56, 63);
+        // cv::fillConvexPoly(img, vertices, 4, transparentColor, cv::LINE_8);
+        int gradient_color = static_cast<int>((1 - control_points[i].y / static_cast<double>(img.rows)) * 127);
+        cv::line(img, control_points[i], cv::Point(control_points[i].x, img.rows), cv::Scalar(gradient_color, gradient_color, gradient_color), 1);
+      }
+
+      break;
+    }
+  }
 }
 
 double a2i::Spectrogram::interpolate(double from ,double to ,float percent) {
@@ -369,7 +516,9 @@ void a2i::Spectrogram::draw_log_bezie_2d(cv::Mat& img) {
       if(x <= 0) x = 1;
       if(y <= 0) y = 1;
       // std::cout << x << " " << y << std::endl;
-      img.at<cv::Vec3b>(cv::Point(x, y)) = cv::Vec3b(255, 255, 255);
+      // img.at<cv::Vec3b>(cv::Point(x, y)) = cv::Vec3b(255, 255, 255);
+      // int radius = 2; // Радиус круга в пикселях
+      // cv::circle(img, cv::Point(x, y), radius, cv::Scalar(255, 255, 255), -1);
 
       // cv::line(img, cv::Point(x, y), cv::Point(x, img.rows), cv::Scalar(79, 73, 80), 1); // одним цветом заливка
     
@@ -385,6 +534,8 @@ void a2i::Spectrogram::draw_log_bezie_2d(cv::Mat& img) {
 void a2i::Spectrogram::draw_lines_simple_2d(cv::Mat& img) {
   for(size_t i = 0; i < frame_size / 2; i += 1) {
     int pos = std::max(0., (i / (double)(frame_size/2)) * img.cols);
+    // double pos = std::min(static_cast<double>(img.cols), std::max(0., (double)((std::log2(i * (sample_rate / 2) / (frame_size / 2)) - std::log2(freq_range.first)) / (std::log2(freq_range.second) - std::log2(freq_range.first))) * img.cols));
+
     double y1;
     std::stringstream ss;
     ss << std::fixed << std::setprecision(1) << (i * sample_rate / 2) / (frame_size / 2);
@@ -400,51 +551,63 @@ void a2i::Spectrogram::draw_lines_simple_2d(cv::Mat& img) {
 }
 
 void a2i::Spectrogram::draw_log_lines_2d(cv::Mat& img) {
-  out.insert(out.begin(), min_max_db.first);
-  for(size_t i = 0; i < frame_size / 2; i += 1) {
-    // int temp = (i * SAMPLE_RATE / 2) / (N/2);
-    // if(temp >= FREQ_START && temp <= FREQ_END) {
-    //   if(powerOut[i] > maxDb) std::cout << powerOut[i] << " >maxDb"  << std::endl;
-
-      int pos = std::max(0., (double)(std::log2(i * (sample_rate / 2) / (frame_size/2)) / std::log2(sample_rate / 2)) * img.cols);
-      int pos1 = std::max(0., (double)(std::log2((i + 1) * (sample_rate / 2) / (frame_size/2)) / std::log2(sample_rate / 2)) * img.cols);
-
-      std::stringstream ss;
-      ss << std::fixed << std::setprecision(1) << out[i];
+  int y_first;
+  double x_first = 0.0;
+  bool first_point = true;
   
-      int y1;
+  std::vector<cv::Point> control_points;
+  
+  for(size_t i = 0; i < frame_size / 2; i += 1) {
+    double pos = std::min(static_cast<double>(img.cols), std::max(0., (double)((std::log2(i * (sample_rate / 2) / (frame_size / 2)) - std::log2(freq_range.first)) / (std::log2(freq_range.second) - std::log2(freq_range.first))) * img.cols));
+    int y;
 
-      if(out[i] < 0) {
-        y1 = (1 - (std::abs(min_max_db.first - out[i]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
+    if(out[i] < 0) {
+      y = (1 - (std::abs(min_max_db.first - out[i]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
+    }
+    else {
+      y = (1 - ((std::abs(min_max_db.first) + out[i]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
+    }
+
+    double freq = i * (sample_rate / 2) / (frame_size / 2);
+
+    if(freq >= freq_range.first && freq <= freq_range.second)
+    {
+      if(first_point)
+      {
+        control_points.push_back(cv::Point(x_first, y_first));
+        first_point = false;
       }
-      else {
-        y1 = (1 - ((std::abs(min_max_db.first) + out[i]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
-      }
+      control_points.push_back(cv::Point(pos, y));
       
-      if (i + 1 < frame_size/2) {
-        int y2;
+    }
+    else
+    { 
+      y_first = y;
 
-        if(out[i + 1] < 0) {
-          y2 = (1 - (std::abs(min_max_db.first - out[i + 1]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
-        }
-        else {
-          y2 = (1 - ((std::abs(min_max_db.first) + out[i + 1]) / std::abs(min_max_db.second - min_max_db.first))) * img.rows;
-        }
-
-        cv::Point vertices[4];
-        vertices[0] = cv::Point(pos, y1);
-        vertices[1] = cv::Point(pos1, y2);
-        vertices[2] = cv::Point(pos1, img.rows);
-        vertices[3] = cv::Point(pos, img.rows);
-
-        cv::Scalar transparentColor(65, 56, 63);
-        cv::fillConvexPoly(img, vertices, 4, transparentColor, cv::LINE_8);
-
-        cv::line(img, cv::Point(pos, y1), cv::Point(pos1, y2), cv::Scalar(255, 255, 255), 1);
-        cv::putText(img, ss.str(), cv::Point(pos, y1 + 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+      if(!first_point)
+      {
+        control_points.push_back(cv::Point(img.cols, y));
       }
-      // cv::putText(img, ss.str(), cv::Point(pos, y1 + 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(127, 127, 127), 1);
-      // cv::line(img, cv::Point(pos, HEIGHT), cv::Point(pos, y1), cv::Scalar(127, 127, 127), 1);
-    // }
+    }
+  }
+
+  for(size_t i = 0; i < control_points.size() - 1; i+=1) {
+    cv::Point vertices[4];
+    vertices[0] = control_points[i];
+    vertices[1] = control_points[i+1];
+    vertices[2] = cv::Point(control_points[i+1].x, img.rows);
+    vertices[3] = cv::Point(control_points[i].x, img.rows);
+
+    // cv::Scalar transparentColor(65, 56, 63);
+    // cv::fillConvexPoly(img, vertices, 4, transparentColor, cv::LINE_8);
+
+    for (int x = vertices[0].x; x < vertices[1].x; x++) {
+      double t = (double)(x - vertices[0].x) / (vertices[1].x - vertices[0].x);
+      int y = interpolate(vertices[0].y, vertices[1].y, t);
+      int gradient_color = static_cast<int>((1 - y / static_cast<double>(img.rows)) * 127);
+      cv::line(img, cv::Point(x, y), cv::Point(x, img.rows), cv::Scalar(gradient_color, gradient_color, gradient_color), 1);
+    }
+
+    // cv::line(img, control_points[i], control_points[i+1], cv::Scalar(255, 255, 255), 2);
   }
 }
