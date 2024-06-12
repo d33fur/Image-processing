@@ -18,26 +18,28 @@
 
 namespace a2i {
 
-  enum graphModes {
+  enum graphModes 
+  {
     LIN = 0, 
     LOG = 1
   };
 
-  enum lineTypes {
+  enum lineTypes 
+  {
     LINES = 0,
     BEZIE = 1,
-    BARS = 2,
-    SQRT = 3,
-    CUBIC = 4
+    BARS = 2
   };
 
-  enum fillTypes {
+  enum fillTypes 
+  {
     NOT_FILLED = 0, 
     ONE_COLOR = 1,
     GRADIENT = 2
   };
 
-  enum windowFunctions {
+  enum windowFunctions 
+  {
     SINE = 0,
     HANN = 1,
     HAMMING = 2,
@@ -52,11 +54,11 @@ namespace a2i {
 
 
   // доделать 3д, 
-  // сделать типы заполнений градиент, 
-  // 1 цвет на выбор или нет цвета, 
-  // выбор отрисовки через енамы, добавить парочку функций фурье
+  // добавить парочку функций фурье
+  // сохранение в видео
   
-  class Spectrogram {
+  class Spectrogram 
+  {
 
   public:
     Spectrogram() {};
@@ -66,9 +68,11 @@ namespace a2i {
       unsigned int audio_sample_rate, 
       unsigned int audio_sample_size, 
       unsigned int audio_channels,
-      std::pair<int, int> audio_min_max_db = {-90, 6});
+      std::pair<int, int> audio_db_range = {-90, 6});
 
-    void setFreqRange(std::pair<unsigned int, unsigned int> audio_freq_range = {0, 20000});
+    void setFreqRange(
+      std::pair<unsigned int, 
+      unsigned int> audio_freq_range = {0, 20000});
     void setFrameSize(int size);
     void setWindowFunc(int type);
     void addWindow();
@@ -94,26 +98,33 @@ namespace a2i {
       const int line_type = 0, 
       const int graph_mode = 1, 
       const int fill_type = 1, 
+      const bool border_line = false,
       const cv::Scalar line_color = cv::Scalar(255, 255, 255), 
-      const cv::Scalar underline_color = cv::Scalar(127, 127, 127));
-
-
-    void draw_log_bezie_2d(cv::Mat& img);
-    void draw_lines_simple_2d(cv::Mat& img);
-    void draw_log_lines_2d(cv::Mat& img);
+      const cv::Scalar underline_color = cv::Scalar(127, 127, 127),
+      const int gradient_coefficient = 127);
 
     // const float freq_start = 20.0;
     // const float freq_end = 20000.0;
 
-    std::vector<float> in; // frame size
     std::vector<float> in_in; // frame size
     std::vector<float> out; // frame size / 2
     std::vector<std::complex<float>> ft_out; // frame size
     std::vector<float> window_out; // frame size * 2
-    std::deque<float> in_d;
+    std::deque<float> in; // frame size
   
   private:
-    double interpolate(double from ,double to ,float percent);
+    double interpolate(
+      double from ,
+      double to ,
+      float percent);
+
+    void drawGraientLine(
+      cv::Mat& img,
+      const int fill_type, 
+      const cv::Point& first_point, 
+      const cv::Point& second_point, 
+      const cv::Scalar underline_color,
+      const int gradient_color);
     // double align(double angle, double period);
     // void correctFrequency(double shiftsPerFrame);
 
@@ -149,10 +160,10 @@ namespace a2i {
     unsigned int frame_size;
     unsigned int sample_rate;
     unsigned int sample_size;
-    std::pair<int, int> min_max_db;
+    std::pair<int, int> db_range;
     float window_correction;
     std::pair<unsigned int, unsigned int> freq_range;
-    std::map<double, double> freq_dictionary;
+    // std::map<double, double> freq_dictionary;
 
   };
 };
