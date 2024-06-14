@@ -1,9 +1,6 @@
-set(CMAKE_CXX_STANDARD 20)
-
 cmake_minimum_required(VERSION 3.14)
 
-set(CMAKE_BUILT_TYPE DEBUG) # RELEASE
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Werror")
+set(CMAKE_CXX_STANDARD 20)
 
 set(SOURCE_DIR "a2i/source")
 set(INCLUDE_DIR "a2i/include")
@@ -20,28 +17,17 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
 if(FFTW_FOUND)
     message("FFTW found")
-    target_link_libraries(a2i PUBLIC PkgConfig::FFTW)
+    target_include_directories(a2i PRIVATE ${FFTW_INCLUDE_DIRS})
+    target_link_libraries(a2i PRIVATE ${FFTW_LIBRARIES})
 else()
-    if(NOT DEFINED FFTW_LIBRARIES)
-        message(WARNING "FFTW not detected by pkg-config, using fftw3 or define -DFFTW_LIBRARIES (e.g. =-lfftw3) and -DFFTW_INCLUDE_DIRS (e.g. =/usr/include)")
-        target_link_libraries(a2i INTERFACE fftw3)
-        target_include_directories(a2i INTERFACE ${FFTW_INCLUDE_DIRS})
-    else()
-        target_link_libraries(a2i INTERFACE ${FFTW_LIBRARIES})
-        target_include_directories(a2i INTERFACE ${FFTW_INCLUDE_DIRS})
-    endif()
-    check_cxx_symbol_exists(fftw_plan_dft_1d fftw3.h FFTW3_CHECKED)
-    if(FFTW_FOUND)
-        message("FFTW found")
-    else()
-        message(FATAL_ERROR "FFTW not found")
-    endif()
+    message(FATAL_ERROR "FFTW not found")
 endif()
 
 find_package(OpenCV CONFIG REQUIRED)
 if(OpenCV_FOUND)
     message("OpenCV found")
-    target_link_libraries(a2i PUBLIC ${OpenCV_LIBS})
+    target_include_directories(a2i PRIVATE ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(a2i PRIVATE ${OpenCV_LIBS})
 else()
     message(FATAL_ERROR "OpenCV not found")
 endif()
@@ -52,7 +38,8 @@ target_include_directories(a2i PUBLIC
 
 set_target_properties(a2i PROPERTIES
     EXPORT_NAME a2i
-    INTERFACE_LINK_LIBRARIES "a2i")
+    INTERFACE_LINK_LIBRARIES "${FFTW_LIBRARIES}")
+    # INTERFACE_LINK_LIBRARIES "a2i")
 
 install(TARGETS a2i EXPORT a2iConfig
     ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -63,4 +50,4 @@ install(FILES ${LIB_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/a2i)
 install(EXPORT a2iConfig DESTINATION share/a2i/cmake)
 export(TARGETS a2i FILE a2iConfig.cmake)
 
-add_subdirectory(app)
+# add_subdirectory(app)

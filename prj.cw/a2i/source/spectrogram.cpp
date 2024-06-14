@@ -21,7 +21,6 @@ void a2i::Spectrogram::setFreqRange(std::pair<unsigned int, unsigned int> audio_
 void a2i::Spectrogram::setFrameSize(int size) 
 {
   frame_size = size;
-  // in.resize(frame_size);
   out.resize(frame_size / 2);
   fft_out.resize(frame_size);
   window_out.resize(frame_size);
@@ -198,9 +197,6 @@ void a2i::Spectrogram::drawGrid(
   const cv::Scalar line_color, 
   const cv::Scalar text_color) 
 {
-
-  // добавить проверку валидности переменных
-
   std::vector<unsigned int> freq_risks;
 
   if(freqs.size() == 0)
