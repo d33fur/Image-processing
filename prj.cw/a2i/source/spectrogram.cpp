@@ -2,14 +2,10 @@
 
 
 void a2i::Spectrogram::setAudioInfo(
-  unsigned int audio_sample_rate, 
-  unsigned int audio_sample_size, 
-  unsigned int audio_channels,
+  unsigned int audio_sample_rate,
   std::pair<int, int> audio_db_range) 
 {
   sample_rate = audio_sample_rate;
-  sample_size = audio_sample_size;
-  channels = audio_channels;
   db_range = audio_db_range;
 }
 

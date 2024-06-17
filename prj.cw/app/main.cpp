@@ -231,7 +231,7 @@ int main(int argc, char** argv)
     AttachAudioStreamProcessor(music.stream, callback);
   }
 
-  g.setAudioInfo(music.stream.sampleRate, music.stream.sampleSize, 2, amp);
+  g.setAudioInfo(music.stream.sampleRate, amp);
   g.setFreqRange({20, 20000});
   g.setFrameSize(FRAME_SIZE);
   g.setWindowFunc(window_function);
@@ -245,7 +245,6 @@ int main(int argc, char** argv)
 
   cv::Mat cur_img = cv::Mat::zeros(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC3);
   cv::Mat grid = cv::Mat::zeros(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC3);
-  cv::Mat mask = cv::Mat::zeros(WINDOW_HEIGHT, WINDOW_WIDTH, CV_8UC1);
   if(grid_enabled) g.drawGrid(grid, graph_mode, 1, {20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000}, 10, grid_line_color, grid_text_color);
 
   while(true)

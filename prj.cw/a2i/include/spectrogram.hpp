@@ -60,8 +60,6 @@ namespace a2i {
 
     void setAudioInfo(
       unsigned int audio_sample_rate, 
-      unsigned int audio_sample_size, 
-      unsigned int audio_channels,
       std::pair<int, int> audio_db_range = {-90, 6});
 
     void setFreqRange(
@@ -137,7 +135,6 @@ namespace a2i {
       &Spectrogram::windowHannPoisson
     };
 
-    unsigned int channels;
     unsigned int frame_size;
     unsigned int sample_rate;
     unsigned int sample_size;
