@@ -3,7 +3,4 @@ bin
 .vscode
 1.json
 ray
-prj.cw/music/butterfly-effect.mp3
-prj.cw/music/ammo.mp3
-prj.cw/music/taco.mp3
-prj.cw/music/sold_out.mp3
+music
