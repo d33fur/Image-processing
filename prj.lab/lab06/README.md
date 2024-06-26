@@ -98,7 +98,7 @@ std::vector<cv::Vec3f> houghCircles(const Mat& image, double dp, double minDist,
 
 ```
 
-Сгенерированные 3 изображения с разметкой из 4 лабораторной
+Сгенерированные 5 изображения с разметкой из 4 лабораторной
 
 ![1](1.jpeg)
 

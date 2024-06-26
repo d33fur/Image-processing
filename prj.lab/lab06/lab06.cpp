@@ -58,7 +58,7 @@ std::vector<cv::Vec3f> houghCircles(const Mat& image, double dp, double minDist,
       }
     }
   }
-
+  
   Mat output(image.size(), CV_8UC3, cv::Scalar(0, 0, 0));
   for (const auto& circle : circles) {
     cv::circle(output, cv::Point(static_cast<int>(circle[0]), static_cast<int>(circle[1])), static_cast<int>(circle[2]) + 1, cv::Scalar(0, 255, 0), 2);
@@ -71,7 +71,7 @@ std::vector<cv::Vec3f> houghCircles(const Mat& image, double dp, double minDist,
 }
 
 int main() {
-  Mat image = imread("/home/student/projects/active/misis2024s-21-01-korepanov-g-a/prj.lab/lab06/Lab04img01.jpeg", cv::IMREAD_GRAYSCALE);
+  Mat image = imread("/home/student/projects/active/misis2024s-21-01-korepanov-g-a/prj.lab/lab06/4.png", cv::IMREAD_GRAYSCALE);
   if (image.empty()) {
     cout << "Error: Could not open image" << std::endl;
     return -1;

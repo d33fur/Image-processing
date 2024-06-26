@@ -16,169 +16,212 @@
 
 # Ход работы
 
-1) Парсим аргументы и проверяем правильные ли они.
+1) GUI
 
-```cpp
-std::pair<double, double> getPair(const std::string& str) {
-  double l, r;
-  std::istringstream iss(str);
-  char separator;
-  if(!(iss >> l >> separator >> r) || separator != '-') {
-    throw std::invalid_argument("Invalid string format");
-  }
-  return {l, r};
-}
+Настройка:
 
-int main(int argc, char* argv[]) {
-  cv::CommandLineParser parser(argc, argv,
-    "{ a | 100 | amount of objects(must be square number) }"
-    "{ s | 3.0-7.0 | borders of object's size(mm) }"
-    "{ c | 5.0-25.0 | borders of contrast ratio(HU) }"
-    "{ b | 0.0 | blur }");
+|Название|Назначение|
+|-|-|
+|A|Количество объектов|
+|S Low|Нижняя граница размера круга|
+|S High|Верхняя граница размеров круга|
+|C Low|Нижняя граница контрастности|
+|C high|Верхняя граница контрастности|
+|B|Коэффициент блюра|
+|Noise level|Уровень шума|
+|Block Size|Параметр для AdaptiveThreshold|
 
-  const auto a = parser.get<int>("a");
-  if(a <= 0) std::cerr << "amount of objects(a) must be positive" << std::endl;
-  if(std::pow((int)std::sqrt(a), 2) != a)  std::cerr << "amount of objects(a) must be square number" << std::endl;
-  const auto b = parser.get<int>("b");
-  if(b < 0) std::cerr << "blur(b) must not be negative" << std::endl;
+![1 example Image](examples/1settings.png)
+![1 example Image](examples/2settings.png)
 
-  std::pair<double, double> s, c;
-  try {
-    s = getPair(parser.get<std::string>("s"));
-    c = getPair(parser.get<std::string>("c"));
-  } catch(const std::invalid_argument& e) {
-    std::cerr << "error while parsing variables: " << e.what() << std::endl;
-  }
-  
+2) При изменении любого параметра в GUI происходит генерация изображения по заданным параметрам, детекция и оценка. Оценка выводится в консоль в виде:
 
 ```
-
-2) Генерируем изображение через функцию ```generate``` с полученными аргументами, записываем его в файл, получаем трешхолд, записываем в файл, ищем кружки и записываем в файл.
-
-```cpp
-  cv::Mat canvas(1024, 1024, CV_8UC1, cv::Scalar(127));
-  cv::Mat object;
-  generate(canvas, object, a, b, s, c);
-  cv::namedWindow("Image", cv::WINDOW_NORMAL);
-  cv::imshow("Image", canvas);
-  cv::imwrite("Lab04img01.jpeg", canvas);
-
-  cv::Mat tresholdCanvas = canvas;
-  getTreshold(tresholdCanvas);
-  cv::namedWindow("Image treshhold", cv::WINDOW_NORMAL);
-  cv::imshow("Image treshhold", tresholdCanvas);
-  cv::imwrite("Lab04img02.jpeg", tresholdCanvas);
-
-  cv::Mat blobsCanvas = canvas;
-  getBlobs(blobsCanvas);
-  cv::namedWindow("Image blobs", cv::WINDOW_NORMAL);
-  cv::imshow("Image blobs", blobsCanvas);
-  cv::imwrite("Lab04img03.jpeg", blobsCanvas);
-
-
-  cv::waitKey(0);
-
-  return 0;
-}
-  
-
+Threshold: 0, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.1, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.2, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.3, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.4, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.5, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.6, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.7, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.8, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.9, TP: 83, FP: 187, FN: 17, IoU: 0.289199
+Threshold: 1, TP: 83, FP: 187, FN: 17, IoU: 0.289199
 ```
 
-3) Функция ```generate```:
-Проходимся по изображению, считаем радиусы кружков и их контраст, вызываем ```addBlur``` на каждой итерации для создания кружочка и добавления блюра. После цикла добавляем шум и нормализуем.
+Так же после каждой генерации сохраняется конфиг в ```config.json```.
 
-```cpp
-void generate(cv::Mat& canvas, cv::Mat& object, int a, int b, std::pair<double, double>& s, std::pair<double, double>& c) {
-  int rows = std::sqrt(a);
-  double sizeStep = (s.second - s.first) / rows;
-  double contrastStep = (c.second - c.first) / rows;
-  object = cv::Mat(1024, 1024, CV_8UC1, cv::Scalar(127));
+Блюр, цвет, уровень шума, размеры изображения.
+В объекты сохраняется контрастность, координаты и радиус.
 
-  for(int i = 0; i < rows; i++) {
-    double currentSize = s.first + i * sizeStep;
-    for(int j = 0; j < rows; j++) {
-      double currentContrast = c.first + j * contrastStep;
-      int y = (object.cols / rows) * j + object.cols / (2 * rows);
-      int x = (object.rows / rows) * i + object.rows / (2 * rows);
-      int radius = currentSize * (object.cols / 100) / 2;
-      int intensity = 154 + currentContrast * (255 / 100);
+```json
+{
+    "data": {
+        "background": {
+            "blur": 50,
+            "color": 127,
+            "noise": 18,
+            "size": [
+                1024,
+                1024
+            ]
+        },
+        "objects": [
+            {
+                "c": 156,
+                "p": [
+                    51,
+                    51,
+                    5
+                ]
+            },
 
-      addBlur(object, x, y, radius, contrastStep, rows, intensity);
-      // addBlur(object, x, y, radius, contrastStep, rows, 100);
+            //<...>
+
+            {
+                "c": 194,
+                "p": [
+                    969,
+                    867,
+                    36
+                ]
+            },
+            {
+                "c": 199,
+                "p": [
+                    969,
+                    969,
+                    36
+                ]
+            }
+        ]
     }
-  }
-
-  cv::Mat  noisedImage = object;
-  cv::Mat mGaussian_noise = cv::Mat(object.size(),CV_8UC1);
-
-  cv::randn(mGaussian_noise, 0, 20);
-  noisedImage += mGaussian_noise;
-  normalize(noisedImage,noisedImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-
-  canvas = noisedImage;
 }
-  
+```
 
+После каждой генерации сохраняется результат детекции в ```detection_result.png```
+
+2) Рассмотрим детальнее работу программы.
+
+При изменении любого параметра вызывается ```onTrackbarChange```.
+Внутри данной функции вызывается функция генерации изображения по параметрам ```generateAndProcess```, сразу при генерации мы записываем в ```groundTruthBlobs``` изначальные параметры каждого объекта для последующей оценки. 
+
+Сгенерированное изображение(параметры как в скриншоте с параметрами) :
+
+![1 example Image](examples/1.png)
+
+Делаем бинаризацию через ```getThreshold``` .
+
+![1 example Image](examples/2settings.png)
+
+Детектим объекты через ```makeDoGDetection```, у нас сохраняется изображение.
+
+![1 example Image](examples/1detection.png)
+
+В конце вызывается оценка качества через ```evaluateDetection```, в консоль выводится:
+
+```
+Threshold: 0, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.1, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.2, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.3, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.4, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.5, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.6, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.7, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.8, TP: 84, FP: 186, FN: 16, IoU: 0.293706
+Threshold: 0.9, TP: 83, FP: 187, FN: 17, IoU: 0.289199
+Threshold: 1, TP: 83, FP: 187, FN: 17, IoU: 0.289199
 ```
 
 
+и конфигурация сохраняется в ```config.json```
 
-4) Функция ```addBlur```:
-Рисуем кружки с нужной контрастностью, размером и координатами, добавляем блюр, копируем на наше изображение.
+# Несколько запусков с разными параметрами
 
-```cpp
-void addBlur(cv::Mat& image, int x, int y, int radius, int blur, int cols, int intensity) {
-  int circleImgWidth = image.cols / cols;
-  cv::Mat circleImage(circleImgWidth, circleImgWidth, CV_8UC1, cv::Scalar(150));
-  
-  cv::circle(circleImage, cv::Point(circleImgWidth / 2, circleImgWidth / 2), radius, cv::Scalar(intensity), -1);
-  int kernelSize = blur * 6 + 1;
-  cv::blur(circleImage, circleImage, cv::Size(kernelSize, kernelSize));
-  
-  circleImage.copyTo(image(cv::Rect(x - circleImgWidth / 2, y - circleImgWidth / 2, circleImgWidth, circleImgWidth)));
-}
-
+1)
+![1 example Image](examples/31.png)
+![1 example Image](examples/32.png)
+![1 example Image](examples/33.png)
+![1 example Image](examples/34.png)
 
 ```
-
-![1 example Image](examples/Lab04img01.jpeg)
-
-5) Функция ```getTreshold```:
-Рисуем кружки с нужной контрастностью, размером и координатами, добавляем блюр, копируем на наше изображение.
-
-```cpp
-void getTreshold(cv::Mat& canvas) {
-  cv::medianBlur(canvas, canvas, 15);
-
-  cv::adaptiveThreshold(canvas, 
-    canvas, 
-    64 * 2, 
-    cv::ADAPTIVE_THRESH_GAUSSIAN_C, 
-    cv::THRESH_BINARY, 
-    255, 
-    7);
-}
-
-
+Threshold: 0, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.1, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.2, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.3, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.4, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.5, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.6, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.7, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.8, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 0.9, TP: 49, FP: 221, FN: 0, IoU: 0.181481
+Threshold: 1, TP: 49, FP: 221, FN: 0, IoU: 0.181481
 ```
 
-![1 example Image](examples/Lab04img02.jpeg)
+2)
 
-
-5) Функция ```getBlobs```:
-Лапласиан.
-
-```cpp
-void getBlobs(cv::Mat& image) {
-  cv::Laplacian(image, image, CV_8UC1);
-  cv::threshold(image, image, 0, 255, cv::THRESH_BINARY);
-}
-
+![1 example Image](examples/41.png)
+![1 example Image](examples/42.png)
+![1 example Image](examples/43.png)
+![1 example Image](examples/44.png)
 
 ```
+Threshold: 0, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.1, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.2, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.3, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.4, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.5, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.6, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.7, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.8, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 0.9, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+Threshold: 1, TP: 64, FP: 206, FN: 0, IoU: 0.237037
+```
+3)
 
-![1 example Image](examples/Lab04img03.jpeg)
+![1 example Image](examples/51.png)
+![1 example Image](examples/52.png)
+![1 example Image](examples/53.png)
+![1 example Image](examples/54.png)
 
-6) Оценки качества нет.
+```
+Threshold: 0, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.1, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.2, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.3, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.4, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.5, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.6, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.7, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.8, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 0.9, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+Threshold: 1, TP: 25, FP: 245, FN: 0, IoU: 0.0925926
+```
+4)
 
-Если делать черные кружки на белом фоне, то кружки детектятся отлично, потому что хорошо отрабатывает трешхолд, но при светлосерых кружках на сером фоне при большом количестве шума работает плохо, детектится шум вместо кружков и самые маленькие кружки превращаются в один большой blob.
+![1 example Image](examples/61.png)
+![1 example Image](examples/62.png)
+![1 example Image](examples/63.png)
+![1 example Image](examples/64.png)
+
+```
+Threshold: 0, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.1, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.2, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.3, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.4, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.5, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.6, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.7, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.8, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 0.9, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+Threshold: 1, TP: 9, FP: 246, FN: 0, IoU: 0.0352941
+```
+# Пример запуска
+
+```bash
+./../bin/lab04
+```

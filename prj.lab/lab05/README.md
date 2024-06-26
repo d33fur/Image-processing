@@ -22,22 +22,21 @@
 
 # Ход работы
 
-1) Создаем нужных размеров ```cv::Mat```, вызываем функцию ```addObjects``` для генерации кругов и квадратов. Вызываем функцию ```getFilteredImg``` для фильтрации, нормализуем в выводим изображение.
+1) Создаем нужных размеров ```cv::Mat```, вызываем функцию ```addObjects``` для генерации кругов и квадратов. Вызываем функцию ```getFilteredImg``` для фильтрации.
 
 ```cpp
 int main() {
   cv::Mat image(99 * 2, 99 * 3, CV_8UC1, 255);
-  cv::Mat processedImage(image.rows * 2, image.cols, CV_32F, 255);
   int var = 2;
 
   addObjects(image);
-  processedImage = getFilteredImg(image, var);
-  cv::normalize(processedImage, processedImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
+  cv::Mat first, second;
+  cv::Mat processedImage = getFilteredImg(image, var, first, second);
+
+  cv::normalize(processedImage, processedImage, 0, 255, cv::NORM_MINMAX, CV_8UC1);
   cv::imshow("image", processedImage);
   cv::waitKey(0);
-  return 0;
-}
   
 
 ```
@@ -71,38 +70,46 @@ void addObjects(cv::Mat& image) {
       }
     }
   }
+
+  cv::imshow("addObjects", image);
+  cv::waitKey(0);
 }
   
 
 ```
 
+Сгенерированное изображение с кругами и квадратами:
+
+![1 example Image](examples/2.png)
+
+
 3) В зависимости от варианта(который передаем аргументом) выбираем разные ядра и фильтруем по ним.
 
 ```cpp
-cv::Mat getFilteredImg(cv::Mat& image, int var) {
-  std::vector<cv::Mat> processedImgVec;
-  cv::Mat mergedImage(image.rows * 2, image.cols, CV_32F, 255);
-  cv::Mat first, second, kernel, invertedKernel;
+cv::Mat getFilteredImg(cv::Mat& image, int var, cv::Mat& first, cv::Mat& second) {
+  cv::Mat kernel, invertedKernel;
   image.convertTo(image, CV_32F);
 
   switch(var) {
     case 1: 
       kernel = (cv::Mat_<double>(2, 2) << -1, 1, -1, 1) / 4.0;
       invertedKernel = (cv::Mat_<double>(2, 2) << 1, 1, -1, -1) / 4.0;
+      break;
     case 2:
       kernel = (cv::Mat_<double>(2, 2) << 1, 0, 0, -1) / 4.0;
       invertedKernel = (cv::Mat_<double>(2, 2) << 0, 1, -1, 0) / 4.0;
+      break;
   }
 
   cv::filter2D(image, first, CV_32F, kernel);
   cv::filter2D(image, second, CV_32F, invertedKernel);
-  processedImgVec.push_back(first);
-  processedImgVec.push_back(second);
 
-  for(int i = 0; i < processedImgVec.size(); i++) {
-    cv::Rect img(0, i * image.rows, image.cols, image.rows);
-    processedImgVec[i].copyTo(mergedImage(img));
-  }
+  cv::Mat mergedImage(image.rows * 2, image.cols, CV_32F, 255);
+  cv::Rect img1(0, 0, image.cols, image.rows);
+  cv::Rect img2(0, image.rows, image.cols, image.rows);
+  
+  first.copyTo(mergedImage(img1));
+  second.copyTo(mergedImage(img2));
 
   return mergedImage;
 }
@@ -110,13 +117,51 @@ cv::Mat getFilteredImg(cv::Mat& image, int var) {
 
 ```
 
+Полученное изображение:
+
+![1 example Image](examples/1.jpg)
 
 
+4,5) Получаем изображение I3 по формуле sqrt(I1 * I1 + I2 * I2) и объединяем I1, I2, I3 в RGB изображение.
 
+```cpp
+  cv::Mat I3 = first;
+  for (int i = 0; i < first.rows; i++) {
+    for (int k = 0; k < first.cols; k++) {
+      I3.at<float>(i, k) = sqrt(pow(second.at<float>(i, k), 2) + pow(first.at<float>(i, k), 2));
+    }
+  }
+
+  cv::normalize(first, first, 0, 255, cv::NORM_MINMAX, -1, cv::Mat());
+  cv::normalize(second, second, 0, 255, cv::NORM_MINMAX, -1, cv::Mat());
+  cv::normalize(I3, I3, 0, 255, cv::NORM_MINMAX, -1, cv::Mat());
+
+  cv::imshow("image", I3);
+  cv::waitKey(0);
+
+  cv::Mat rgbImage;
+  std::vector<cv::Mat> channels = {first, second, I3};
+  cv::merge(channels, rgbImage);
+  rgbImage.convertTo(rgbImage, CV_8UC3);
+
+  cv::imshow("image", rgbImage);
+  cv::waitKey(0);
+  return 0;
+}
+  
+
+```
+
+Полученное изображение I3:
+
+![1 example Image](examples/4.png)
+
+RGB изображение из I1, I2, I3:
+
+![1 example Image](examples/3.png)
 
 
 ```bash
 ./../bin/lab05
 ```
 
-![1 example Image](examples/1.jpg)
